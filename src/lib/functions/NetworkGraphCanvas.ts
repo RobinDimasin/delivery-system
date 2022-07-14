@@ -21,6 +21,7 @@ type NetworkGraphCanvasConfig = {
 export default class NetworkGraphCanvas extends Canvas {
   #nodes = new Array<NodeElement>();
   #edges = new Array<EdgeElement>();
+  #actionStack = new Array<() => void>();
 
   constructor(
     config: Partial<NetworkGraphCanvasConfig> & Partial<CanvasConfig> = {}
@@ -109,6 +110,11 @@ export default class NetworkGraphCanvas extends Canvas {
 
       this.#nodes.push(node);
 
+      this.#actionStack.push(() => {
+        this.deleteElement(node);
+        this.#nodes = this.#nodes.filter((n) => n !== node);
+      });
+
       if (
         previousSelectedElement &&
         previousSelectedElement instanceof NodeElement
@@ -121,6 +127,11 @@ export default class NetworkGraphCanvas extends Canvas {
 
         this.addElement(edge);
         this.#edges.push(edge);
+
+        this.#actionStack.push(() => {
+          this.deleteElement(edge);
+          this.#edges = this.#edges.filter((e) => e !== edge);
+        });
       }
 
       this.selectedElement = node;
@@ -168,11 +179,15 @@ export default class NetworkGraphCanvas extends Canvas {
           } else if (selectedElement instanceof EdgeElement) {
             this.#edges.splice(this.#edges.indexOf(selectedElement), 1);
           }
-
-          this.selectedElement = null;
         }
       } else if (event.code === "Escape") {
         this.selectedElement = null;
+      } else if (event.code === "KeyZ" && event.ctrlKey) {
+        const remove = this.#actionStack.pop();
+
+        if (remove) {
+          remove();
+        }
       }
     });
   }

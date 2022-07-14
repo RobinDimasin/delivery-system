@@ -302,6 +302,10 @@ export class Canvas extends EventEmitter {
   }
 
   deleteElement(element: Element) {
+    if (this.#selectedElement === element && element) {
+      this.#selectedElement.state.selected = false;
+      this.#selectedElement = null;
+    }
     this.elements.delete(element.id);
     this.#elementList = Array.from(this.elements.values()).sort(
       (a, b) => a.state.z - b.state.z
