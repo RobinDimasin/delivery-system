@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { Sketch } from "p5-svelte";
 import type p5 from "p5";
 import type { Control } from "../types";
+import type { AlgorithmActionType } from "../algorithm/Algorithm";
 
 export type ElementConfig = {
   id?: string;
@@ -82,11 +83,45 @@ export default abstract class Element<
   onDeselect() {}
 
   addStateRenderer(state: string, render: (p5: p5) => void) {
+    // @ts-ignore
     this.#state.renderer[state] = render;
   }
 
   isInsideScreen(width: number, height: number, view: Control["view"]) {
     return true;
+  }
+
+  makeChangeStateAction<T extends State & ElementState>(
+    type: AlgorithmActionType,
+    values: Partial<{
+      [key in keyof T]: T[key] | ((...args: any) => T[key]);
+    }>
+  ) {
+    const originalValues: Partial<State & ElementState> = {};
+
+    for (const key of Object.keys(values)) {
+      // @ts-ignore
+      originalValues[key] = this.#state[key];
+    }
+
+    return {
+      type,
+      perform: (...args: any) => {
+        for (const key of Object.keys(values)) {
+          // @ts-ignore
+          this.#state[key] =
+            typeof values[key] === "function"
+              ? values[key](...args)
+              : values[key];
+        }
+      },
+      undo: () => {
+        this.#state = {
+          ...this.state,
+          ...originalValues,
+        };
+      },
+    };
   }
 
   get p5() {

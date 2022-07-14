@@ -2,6 +2,18 @@
 # yarn lockfile v1
 
 
+"@datastructures-js/heap@^4.0.2":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@datastructures-js/heap/-/heap-4.1.0.tgz#3aecb64f5fdd60e447949b0b5e04efcc6d2ed971"
+  integrity sha512-PFKWpDhd1BEdKw2FErddES8bLT6R2/FiivT42eByshG+9vNUpsGuOr7tsKcqRo1S3XyfBnQT711HVQt2k6xRQw==
+
+"@datastructures-js/priority-queue@^6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@datastructures-js/priority-queue/-/priority-queue-6.1.1.tgz#c58c84cb13b3f555bcee97d98982a43fa20b2aad"
+  integrity sha512-wKhIstYPW5bEbe8lzHLllktnrzw1P5KR0Rc5lZZTVMDjt6O4b8KxGxIvgs9txdtWdkVKFoiP2SbhxHArx2EYBA==
+  dependencies:
+    "@datastructures-js/heap" "^4.0.2"
+
 "@jridgewell/resolve-uri@^3.0.3":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@jridgewell/resolve-uri/-/resolve-uri-3.1.0.tgz#2203b118c157721addfe69d47b70465463066d78"

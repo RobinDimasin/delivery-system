@@ -1,5 +1,5 @@
 import type p5 from "p5";
-import Element, { ElementConfig, ElementType } from "../Element";
+import Element, { ElementConfig, ElementState, ElementType } from "../Element";
 import type { Control, Position } from "../../types";
 
 export type NodeConfig = Position & {
@@ -39,7 +39,6 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
 
     if (this.state.hovering) {
       p5.stroke("blue");
-      // p5.text(this.config.id.slice(0, 4), this.state.x, this.state.y);
     }
 
     p5.circle(this.state.x, this.state.y, this.state.radius * 2);

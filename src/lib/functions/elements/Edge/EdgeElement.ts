@@ -1,6 +1,6 @@
 import type p5 from "p5";
 import type { Control, Position } from "../../types";
-import Element, { ElementConfig, ElementType } from "../Element";
+import Element, { ElementConfig, ElementState, ElementType } from "../Element";
 import type NodeElement from "../Node/NodeElement";
 
 export type EdgeConfig = {

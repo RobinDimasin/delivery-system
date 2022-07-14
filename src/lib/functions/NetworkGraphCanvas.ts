@@ -34,7 +34,7 @@ export default class NetworkGraphCanvas extends Canvas {
         x: node.x,
         y: node.y,
         radius: 2,
-        fill: "yellow",
+        fill: "black",
         draggable: true,
       });
     });
