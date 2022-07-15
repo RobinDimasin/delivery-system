@@ -28,37 +28,12 @@ export default class NetworkGraphCanvas extends Canvas {
   ) {
     super(config);
 
-    this.#nodes = (config.nodes ?? []).map((node) => {
-      return new NodeElement({
-        id: node.id,
-        x: node.x,
-        y: node.y,
-        radius: 2,
-        fill: "black",
-        draggable: true,
-      });
+    this.setGraph({
+      nodes: config.nodes ?? [],
+      edges: config.edges ?? [],
     });
 
-    this.#edges = (config.edges ?? [])
-      .map((edge) => {
-        const source = this.#nodes.find((node) => node.id === edge.source);
-        const target = this.#nodes.find((node) => node.id === edge.target);
-
-        if (source && target) {
-          return new EdgeElement({
-            source,
-            target,
-          });
-        } else {
-          return null;
-        }
-      })
-      .filter((edge) => edge !== null);
-
-    this.addElement(...this.#nodes);
-    this.addElement(...this.#edges);
-
-    // for (let i = 0; i < 20; i++) {
+    // for (let i = 0; i < 5; i++) {
     //   this.addElement(
     //     ...(config.nodes ?? []).map((node) => {
     //       return new NodeElement({
@@ -93,6 +68,40 @@ export default class NetworkGraphCanvas extends Canvas {
     // }
 
     this.initEventListeners();
+  }
+
+  setGraph(graph: NetworkGraphCanvasConfig) {
+    this.deleteElement(...this.elements.values());
+
+    this.#nodes = (graph.nodes ?? []).map((node) => {
+      return new NodeElement({
+        id: node.id,
+        x: node.x,
+        y: node.y,
+        radius: 2,
+        fill: "black",
+        draggable: true,
+      });
+    });
+
+    this.#edges = (graph.edges ?? [])
+      .map((edge) => {
+        const source = this.#nodes.find((node) => node.id === edge.source);
+        const target = this.#nodes.find((node) => node.id === edge.target);
+
+        if (source && target) {
+          return new EdgeElement({
+            source,
+            target,
+          });
+        } else {
+          return null;
+        }
+      })
+      .filter((edge) => edge !== null);
+
+    this.addElement(...this.#nodes);
+    this.addElement(...this.#edges);
   }
 
   initEventListeners() {

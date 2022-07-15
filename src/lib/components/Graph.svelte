@@ -2,33 +2,44 @@
   import P5 from "p5-svelte";
   import DFS from "../functions/algorithm/types/DFS";
   import { downloadJson } from "../functions/utility";
-  import _graph from "../data/graph.json";
+  import graphBig from "../data/graph.json";
+  import graphSmall from "../data/graph_small.json";
   import NetworkGraphCanvas from "../functions/NetworkGraphCanvas";
   import type NodeElement from "../functions/elements/Node/NodeElement";
+  import type { AlgorithmAction } from "../functions/algorithm/Algorithm";
   let width = 900;
   let height = 600;
 
-  const networkGraph = NetworkGraphCanvas.fromJSON(_graph, {
+  let graph = graphSmall;
+
+  const networkGraph = NetworkGraphCanvas.fromJSON(graph, {
     width,
     height,
   });
 
-  const startNode = networkGraph.nodes.find(
-    (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
-  ) as NodeElement;
-  const middleNode = networkGraph.nodes.find(
-    (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
-  ) as NodeElement;
-  const endNode = networkGraph.nodes.find(
-    (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
-  ) as NodeElement;
+  let startNode, middleNode, endNode, dfs;
 
-  const dfs = new DFS();
+  $: {
+    networkGraph.setGraph(graph);
+
+    startNode = networkGraph.nodes.find(
+      (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
+    ) as NodeElement;
+    middleNode = networkGraph.nodes.find(
+      (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
+    ) as NodeElement;
+    endNode = networkGraph.nodes.find(
+      (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
+    ) as NodeElement;
+
+    dfs = new DFS({
+      nodes: networkGraph.nodes,
+      edges: networkGraph.edges,
+    });
+  }
   let actionIndex = 0;
-  const actions = dfs.start([startNode, middleNode, endNode], {
-    nodes: networkGraph.nodes,
-    edges: networkGraph.edges,
-  });
+  // const actions = dfs.start([startNode, middleNode, endNode]);
+  let actions: AlgorithmAction[] | undefined;
 
   const previous = () => {
     if (actionIndex >= 0) {
@@ -70,11 +81,38 @@
   Download Graph
 </button>
 
-<button on:click={previous}>Previous</button>
+<button
+  on:click={() => {
+    graph = graphSmall;
+  }}
+>
+  Load Small Graph
+</button>
 
-<button on:click={next}>Next</button>
-<button on:click={start}>Start</button>
-<button on:click={stop}>Stop</button>
+<button
+  on:click={() => {
+    graph = graphBig;
+  }}
+>
+  Load Big Graph
+</button>
+
+{#if actions}
+  <button on:click={previous}>Previous</button>
+
+  <button on:click={next}>Next</button>
+  <button on:click={start}>Start</button>
+  <button on:click={stop}>Stop</button>
+{:else}
+  <button
+    on:click={() => {
+      actions = dfs.start([startNode, middleNode, endNode]);
+      actionIndex = 0;
+    }}
+  >
+    Load Algorithm
+  </button>
+{/if}
 
 <style>
   :global(body) {

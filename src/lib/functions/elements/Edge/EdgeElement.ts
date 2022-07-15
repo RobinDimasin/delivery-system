@@ -8,11 +8,15 @@ export type EdgeConfig = {
   target: NodeElement;
   stroke?: string;
   strokeWeight?: number;
+  showArrowIn?: boolean;
+  showArrowOut?: boolean;
 };
 
 export type EdgeState = {
   stroke: string;
   strokeWeight: number;
+  showArrowIn: boolean;
+  showArrowOut: boolean;
 };
 
 export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
@@ -20,52 +24,78 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
     super(
       ElementType.EDGE,
       {
-        x: config.source.state.x,
-        y: config.source.state.y,
+        x: config.source.x,
+        y: config.source.y,
         stroke: "black",
         strokeWeight: 1,
+        showArrowIn: false,
+        showArrowOut: false,
         ...config,
       },
       {
         stroke: config.stroke ?? "#000",
         strokeWeight: config.strokeWeight ?? 1,
+        showArrowIn: config.showArrowIn ?? false,
+        showArrowOut: config.showArrowOut ?? false,
       }
     );
   }
 
-  render(p5: p5): void {
-    p5.stroke(this.state.stroke);
-    p5.strokeWeight(this.state.strokeWeight);
+  render(p5: p5, view: Control["view"]): void {
+    p5.stroke(this.stroke);
+    p5.strokeWeight(this.strokeWeight);
 
-    const x1 = this.config.source.state.x;
-    const y1 = this.config.source.state.y;
-    const x2 = this.config.target.state.x;
-    const y2 = this.config.target.state.y;
+    const x1 = this.source.x;
+    const y1 = this.source.y;
+    const x2 = this.target.x;
+    const y2 = this.target.y;
 
-    if (this.state.hovering) {
+    if (this.hovering) {
       p5.stroke("blue");
-      p5.textAlign(p5.CENTER);
+      // p5.textAlign(p5.CENTER);
       // p5.text(
-      //   this.config.source.id.slice(0, 4) +
+      //   this.source.id.slice(0, 4) +
       //     " " +
-      //     this.config.target.id.slice(0, 4),
+      //     this.target.id.slice(0, 4),
       //   (x2 - x1) / 2 + x1,
       //   (y2 - y1) / 2 + y1
       // );
     }
 
-    if (this.state.selected) {
+    if (this.selected) {
       p5.stroke("red");
+    }
+
+    if (this.showArrowIn) {
+      this.drawArrow(p5, this.target, this.source);
+    }
+
+    if (this.showArrowOut) {
+      this.drawArrow(p5, this.source, this.target);
     }
 
     p5.line(x1, y1, x2, y2);
   }
 
+  drawArrow(p5: p5, from: NodeElement, to: NodeElement, arrowSize: number = 2) {
+    const dir = p5.createVector(from.x - to.x, from.y - to.y).normalize();
+
+    p5.push();
+    p5.translate(
+      from.x - dir.x * arrowSize - dir.x * from.radius * 1.5,
+      from.y - dir.y * arrowSize - dir.y * from.radius * 1,
+      5
+    );
+    p5.rotate(dir.heading());
+    p5.triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
+    p5.pop();
+  }
+
   isInside(x0: number, y0: number) {
-    const x1 = this.config.source.state.x;
-    const y1 = this.config.source.state.y;
-    const x2 = this.config.target.state.x;
-    const y2 = this.config.target.state.y;
+    const x1 = this.source.x;
+    const y1 = this.source.y;
+    const x2 = this.target.x;
+    const y2 = this.target.y;
 
     const minX = Math.min(x1, x2);
     const minY = Math.min(y1, y2);
@@ -83,10 +113,10 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
   }
 
   isInsideScreen(width: number, height: number, view: Control["view"]) {
-    // const x1 = this.config.source.state.x * view.zoom + view.x;
-    // const y1 = this.config.source.state.y * view.zoom + view.y;
-    // const x2 = this.config.target.state.x * view.zoom + view.x;
-    // const y2 = this.config.target.state.y * view.zoom + view.y;
+    // const x1 = this.source.x * view.zoom + view.x;
+    // const y1 = this.source.y * view.zoom + view.y;
+    // const x2 = this.target.x * view.zoom + view.x;
+    // const y2 = this.target.y * view.zoom + view.y;
 
     // const minX = Math.min(x1, x2);
     // const minY = Math.min(y1, y2);
@@ -108,8 +138,32 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
     // );
 
     return (
-      this.config.source.isInsideScreen(width, height, view) ||
-      this.config.target.isInsideScreen(width, height, view)
+      this.source.isInsideScreen(width, height, view) ||
+      this.target.isInsideScreen(width, height, view)
     );
+  }
+
+  get stroke() {
+    return this.state.stroke;
+  }
+
+  get strokeWeight() {
+    return this.state.strokeWeight;
+  }
+
+  get showArrowIn() {
+    return this.state.showArrowIn;
+  }
+
+  get showArrowOut() {
+    return this.state.showArrowOut;
+  }
+
+  get source() {
+    return this.config.source;
+  }
+
+  get target() {
+    return this.config.target;
   }
 }

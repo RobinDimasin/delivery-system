@@ -73,7 +73,7 @@ export default abstract class Element<
     } as Required<State & ElementState>;
   }
 
-  abstract render(p5: p5): void;
+  abstract render(p5: p5, view: Control["view"]): void;
   abstract isInside(x: number, y: number): boolean;
 
   onHover(hovering: boolean) {}
@@ -124,12 +124,8 @@ export default abstract class Element<
     };
   }
 
-  get p5() {
-    return this.#p5;
-  }
-
-  get id() {
-    return this.#id;
+  get type() {
+    return this.#type;
   }
 
   get config() {
@@ -140,7 +136,39 @@ export default abstract class Element<
     return this.#state;
   }
 
-  get type() {
-    return this.#type;
+  get id() {
+    return this.#id;
+  }
+
+  get x() {
+    return this.#state.x;
+  }
+
+  get y() {
+    return this.#state.y;
+  }
+
+  get z() {
+    return this.#state.z;
+  }
+
+  get draggable() {
+    return this.#state.draggable;
+  }
+
+  get dragging() {
+    return this.#state.dragging;
+  }
+
+  get selected() {
+    return this.#state.selected;
+  }
+
+  get hovering() {
+    return this.#state.hovering;
+  }
+
+  get renderer() {
+    return this.#state.renderer;
   }
 }

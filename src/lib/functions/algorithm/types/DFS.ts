@@ -1,106 +1,39 @@
 import type NodeElement from "../../elements/Node/NodeElement";
-import { increaseBrightness } from "../../utility";
 import Algorithm, {
   AlgorithmAction,
   AlgorithmActionType,
   AlgorithmType,
-  GraphInput,
+  GraphRawInput,
 } from "../Algorithm";
 
 export default class DFS extends Algorithm {
-  constructor() {
-    super(AlgorithmType.DFS);
+  constructor(graph: GraphRawInput) {
+    super(AlgorithmType.DFS, graph);
   }
 
-  process(start: NodeElement, end: NodeElement, graph: GraphInput) {
+  process(start: NodeElement, end: NodeElement) {
     const visited = new Set<NodeElement>();
+
+    const stack = [start];
 
     // Functions to call when playing the visualization; change color, size, etc...
     const actions = new Array<AlgorithmAction>();
 
-    const stack = [start];
-
     // Make starting node color red
     actions.push(
-      start.makeChangeStateAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, {
-        fill: "red",
-        radius: 8,
-      })
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start)
     );
 
     // Make ending node color red
-    actions.push(
-      end.makeChangeStateAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, {
-        fill: "red",
-        radius: 8,
-      })
-    );
-
-    // Mapping of nodes to their parent
-    const parentMap = new Map<NodeElement, NodeElement>();
+    actions.push(this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end));
 
     while (stack.length > 0) {
       const node = stack.pop();
 
-      // Make currently processing node color lime
-      if (!(node === start || node === end)) {
-        actions.push(
-          node.makeChangeStateAction(AlgorithmActionType.PROCESS_NODE, {
-            fill: "lime",
-            radius: 3,
-          })
-        );
-      }
-
       // Backtrack the path from the end node to the start node, if the end node is reached
       if (node === end) {
-        let child = end;
-        while (parentMap.has(child)) {
-          if (child !== node) {
-            actions.push(
-              child.makeChangeStateAction(AlgorithmActionType.BUILD_PATH_NODE, {
-                fill: (brightess) => {
-                  if (!brightess) {
-                    return "red";
-                  }
-                  return increaseBrightness("#FF0000", brightess);
-                },
-                radius: 4,
-              })
-            );
-          }
-
-          const parent = parentMap.get(child);
-
-          if (parent) {
-            const edge = graph
-              .get(child)
-              .find(
-                (edge) =>
-                  edge.element.config.source === parent ||
-                  edge.element.config.target === parent
-              );
-
-            if (edge) {
-              actions.push(
-                edge.element.makeChangeStateAction(
-                  AlgorithmActionType.BUILD_PATH_EDGE,
-                  {
-                    stroke: (brightess) => {
-                      if (!brightess) {
-                        return "red";
-                      }
-                      return increaseBrightness("#FF0000", brightess);
-                    },
-                    strokeWeight: 3,
-                  }
-                )
-              );
-            }
-          }
-
-          child = parent;
-        }
+        const buildPathActions = this.buildPath(start, node);
+        actions.push(...buildPathActions);
         break;
       }
 
@@ -109,26 +42,37 @@ export default class DFS extends Algorithm {
         continue;
       }
 
+      // Make currently processing node color cyan
+      if (!(node === start || node === end)) {
+        actions.push(
+          this.makeAction(AlgorithmActionType.START_PROCESSING_NODE, node)
+        );
+      }
+
       // Add node to visited
       visited.add(node);
 
-      const edges = [...graph.get(node)];
+      actions.push(this.showCurrentPath(start, node));
+
+      const edges = [...this.graph.get(node)];
 
       // Add all neighboring nodes to the stack
       while (edges.length > 0) {
         const child = edges.pop().to;
         if (!visited.has(child)) {
-          parentMap.set(child, node);
+          this.parentMap.set(child, node);
 
           // Make the neighboring node color gray, indicating it is in the stack
           actions.push(
-            child.makeChangeStateAction(AlgorithmActionType.ENQUEUE_NODE, {
-              fill: "gray",
-              radius: 4,
-            })
+            this.makeAction(AlgorithmActionType.ENQUEUE_NODE, child)
           );
           stack.push(child);
         }
+      }
+
+      // Make newly processed node color lime
+      if (!(node === start || node === end)) {
+        actions.push(this.makeAction(AlgorithmActionType.NODE_PROCESSED, node));
       }
     }
 

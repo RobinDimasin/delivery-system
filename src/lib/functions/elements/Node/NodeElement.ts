@@ -29,32 +29,34 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
     );
   }
 
-  render(p5: p5): void {
-    p5.fill(this.state.fill);
+  render(p5: p5, view: Control["view"]): void {
+    if (this.fill === this.config.fill && view.zoom <= 0.55) {
+      return;
+    }
+
+    p5.fill(this.fill);
     p5.stroke("#000");
 
-    if (this.state.selected) {
+    if (this.selected) {
       p5.fill("red");
     }
 
-    if (this.state.hovering) {
+    if (this.hovering) {
       p5.stroke("blue");
     }
 
-    p5.circle(this.state.x, this.state.y, this.state.radius * 2);
+    p5.circle(this.x, this.y, this.radius * 2);
   }
 
   isInside(x: number, y: number) {
-    return (
-      Math.hypot(this.state.x - x, this.state.y - y) <= this.state.radius * 1.2
-    );
+    return Math.hypot(this.x - x, this.y - y) <= this.radius * 1.2;
   }
 
   isInsideScreen(width: number, height: number, view: Control["view"]) {
-    const x = this.state.x * view.zoom + view.x;
-    const y = this.state.y * view.zoom + view.y;
+    const x = this.x * view.zoom + view.x;
+    const y = this.y * view.zoom + view.y;
 
-    const outset = this.state.radius + 10;
+    const outset = this.radius + 10;
 
     return (
       x >= -outset &&
@@ -62,5 +64,13 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       y >= -outset &&
       y <= height + outset
     );
+  }
+
+  get radius() {
+    return this.state.radius;
+  }
+
+  get fill() {
+    return this.state.fill;
   }
 }

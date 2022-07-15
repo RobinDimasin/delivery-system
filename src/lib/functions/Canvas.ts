@@ -1,5 +1,6 @@
 import type p5 from "p5";
 import type { Sketch } from "p5-svelte";
+import EdgeElement from "./elements/Edge/EdgeElement";
 import type Element from "./elements/Element";
 import NodeElement from "./elements/Node/NodeElement";
 import EventEmitter from "./EventEmitter";
@@ -68,26 +69,26 @@ export class Canvas extends EventEmitter {
 
         element.state.selected = this.#selectedElement === element;
 
-        // const renderer = element.state.renderer[element.state.render];
+        const renderer = element.state.renderer[element.state.render];
 
-        // p5.push();
+        p5.push();
         // if (renderer) {
         //   renderer(p5);
         // } else {
-        element.render(p5);
+        element.render(p5, this.#controls.view);
         // }
-        // p5.pop();
+        p5.pop();
       });
     };
 
     p5.frameRate(30);
 
     p5.mouseMoved = (event: MouseEvent) => {
-      this.hoverElement(event.offsetX, event.offsetY);
+      this.hoverElement(p5.mouseX, p5.mouseY);
     };
 
     p5.mouseDragged = (event: MouseEvent) => {
-      this.dragElement(event.offsetX, event.offsetY);
+      this.dragElement(p5.mouseX, p5.mouseY);
 
       if (this.#pressedButton === 1) {
         this.dragScreen(event.clientX, event.clientY);
@@ -103,12 +104,12 @@ export class Canvas extends EventEmitter {
         if (this.#pressedButton === 1) {
           this.startDragging(event.clientX, event.clientY);
         }
-        this.handleMousePress(event.offsetX, event.offsetY, event.button);
+        this.handleMousePress(p5.mouseX, p5.mouseY, event.button);
       }
     };
 
     p5.mouseReleased = (event: MouseEvent) => {
-      // this.deselectElement(event.offsetX, event.offsetY);
+      // this.deselectElement(p5.mouseX, p5.mouseY);
       this.handleMouseReleased();
 
       this.stopDragging(event.clientX, event.clientY);
@@ -293,23 +294,26 @@ export class Canvas extends EventEmitter {
     this.#controls.view.zoom += zoom;
   }
 
-  addElement(...element: Element[]) {
-    element.forEach((el) => this.elements.set(el.id, el));
+  addElement(...elements: Element[]) {
+    elements.forEach((el) => this.elements.set(el.id, el));
 
     this.#elementList = Array.from(this.elements.values()).sort(
       (a, b) => a.state.z - b.state.z
     );
   }
 
-  deleteElement(element: Element) {
-    if (this.#selectedElement === element && element) {
-      this.#selectedElement.state.selected = false;
-      this.#selectedElement = null;
+  deleteElement(...elements: Element[]) {
+    for (const element of elements) {
+      if (this.#selectedElement === element && element) {
+        this.#selectedElement.state.selected = false;
+        this.#selectedElement = null;
+      }
+
+      this.elements.delete(element.id);
+      this.#elementList = Array.from(this.elements.values()).sort(
+        (a, b) => a.state.z - b.state.z
+      );
     }
-    this.elements.delete(element.id);
-    this.#elementList = Array.from(this.elements.values()).sort(
-      (a, b) => a.state.z - b.state.z
-    );
   }
 
   get elements() {

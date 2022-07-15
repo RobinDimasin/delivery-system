@@ -6,18 +6,15 @@ import Algorithm, {
   AlgorithmActionType,
   AlgorithmType,
   GraphInput,
+  GraphRawInput,
 } from "../Algorithm";
 
 export default class AStar extends Algorithm {
-  constructor() {
-    super(AlgorithmType.ASTAR);
+  constructor(graph: GraphRawInput) {
+    super(AlgorithmType.ASTAR, graph);
   }
 
-  process(
-    start: NodeElement,
-    end: NodeElement,
-    graph: GraphInput
-  ): AlgorithmAction[] {
+  process(start: NodeElement, end: NodeElement): AlgorithmAction[] {
     const actions = new Array<AlgorithmAction>();
 
     // Code here
