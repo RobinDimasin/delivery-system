@@ -33,6 +33,8 @@ export class Canvas extends EventEmitter {
       width: 600,
       height: 600,
       setup: (p5: p5) => {
+        this.config.width = p5.windowWidth;
+        this.config.height = p5.windowHeight;
         const canvas = p5.createCanvas(this.config.width, this.config.height);
         // canvas.position(0, 0);
       },
@@ -54,7 +56,7 @@ export class Canvas extends EventEmitter {
       p5.translate(this.#controls.view.x, this.#controls.view.y);
       p5.scale(this.#controls.view.zoom);
       this.config.draw(p5);
-      // p5.image(img, 0, 0);
+      p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
         if (
@@ -85,6 +87,12 @@ export class Canvas extends EventEmitter {
 
     p5.frameRate(30);
 
+    p5.windowResized = () => {
+      this.config.width = p5.windowWidth;
+      this.config.height = p5.windowHeight;
+      p5.resizeCanvas(this.config.width, this.config.height);
+    };
+
     p5.mouseMoved = (event: MouseEvent) => {
       this.hoverElement(p5.mouseX, p5.mouseY);
     };
@@ -94,6 +102,7 @@ export class Canvas extends EventEmitter {
 
       if (this.#pressedButton === 1) {
         this.dragScreen(event.clientX, event.clientY);
+        event.preventDefault();
       }
     };
 

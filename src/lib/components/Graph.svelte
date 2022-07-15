@@ -94,45 +94,55 @@
   };
 </script>
 
-<P5 sketch={networkGraph.setup} />
+<div class="overflow-hidden">
+  <P5 sketch={networkGraph.setup} />
+</div>
 
-<button on:click={() => downloadJson(networkGraph.toJSON())}>
-  Download Graph
-</button>
-
-<button
-  on:click={() => {
-    graph = graphSmall;
-  }}
->
-  Load Small Graph
-</button>
-
-<button
-  on:click={() => {
-    graph = graphBig;
-  }}
->
-  Load Big Graph
-</button>
-
-{#if actions || gen}
-  <button on:click={previous}>Previous</button>
-
-  <button on:click={next}>Next</button>
-  <button on:click={start}>Start</button>
-  <button on:click={stop}>Stop</button>
-{:else}
+<div class="absolute top-0 left-0">
   <button
+    class="btn btn-primary"
+    on:click={() => downloadJson(networkGraph.toJSON())}
+  >
+    Download Graph
+  </button>
+
+  <button
+    class="btn btn-primary"
     on:click={() => {
-      // actions = dfs.start([startNode, middleNode, endNode]);
-      // actionIndex = 0;
-      gen = dfs.startGenerator([startNode, middleNode, endNode]);
+      graph = graphSmall;
     }}
   >
-    Load Algorithm
+    Load Small Graph
   </button>
-{/if}
+
+  <button
+    class="btn btn-primary"
+    on:click={() => {
+      graph = graphBig;
+    }}
+  >
+    Load Big Graph
+  </button>
+
+  {#if actions || gen}
+    <button class="btn btn-primary" on:click={previous}>Previous</button>
+
+    <button class="btn btn-primary" on:click={next}>Next</button>
+    <button class="btn btn-primary" on:click={start}>Start</button>
+    <button class="btn btn-primary" on:click={stop}>Stop</button>
+  {:else}
+    <button
+      class="btn btn-primary"
+      on:click={() => {
+        // actions = dfs.start([startNode, middleNode, endNode]);
+        // actionIndex = 0;
+        gen = dfs.startGenerator([startNode, middleNode, endNode]);
+      }}
+    >
+      Load Algorithm
+    </button>
+  {/if}
+</div>
 
 <style>
   :global(body) {
