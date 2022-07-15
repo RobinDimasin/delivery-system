@@ -5,6 +5,7 @@ const AlgorithmStyles = {
     DEFAULT: {
       fill: "black",
       radius: 2,
+      scaleWithZoom: false,
     },
     QUEUED: {
       fill: "gray",

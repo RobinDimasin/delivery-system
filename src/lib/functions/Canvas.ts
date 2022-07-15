@@ -54,7 +54,7 @@ export class Canvas extends EventEmitter {
       p5.translate(this.#controls.view.x, this.#controls.view.y);
       p5.scale(this.#controls.view.zoom);
       this.config.draw(p5);
-      p5.image(img, 0, 0);
+      // p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
         if (
@@ -79,6 +79,8 @@ export class Canvas extends EventEmitter {
         // }
         // p5.pop();
       });
+
+      console.log(p5.frameRate());
     };
 
     p5.frameRate(30);
@@ -295,7 +297,10 @@ export class Canvas extends EventEmitter {
   }
 
   addElement(...elements: Element[]) {
-    elements.forEach((el) => this.elements.set(el.id, el));
+    elements.forEach((el) => {
+      this.elements.set(el.id, el);
+      el.canvas = this;
+    });
 
     this.#elementList = Array.from(this.elements.values()).sort(
       (a, b) => a.state.z - b.state.z
@@ -339,6 +344,10 @@ export class Canvas extends EventEmitter {
     if (this.#selectedElement) {
       this.#selectedElement.state.selected = true;
     }
+  }
+
+  get controls() {
+    return this.#controls;
   }
 }
 

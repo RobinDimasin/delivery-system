@@ -67,7 +67,7 @@
 
   let interval;
 
-  let yieldInterval = 5;
+  let yieldInterval = 2;
 
   const start = () => {
     clearInterval(interval);
@@ -82,8 +82,8 @@
       const need = expected - processed;
 
       for (let i = 0; i < need; i++) {
-        // gen.next();
-        next();
+        gen.next();
+        // next();
         processed++;
       }
     }, 5);
@@ -116,7 +116,7 @@
   Load Big Graph
 </button>
 
-{#if actions}
+{#if actions || gen}
   <button on:click={previous}>Previous</button>
 
   <button on:click={next}>Next</button>
@@ -125,9 +125,9 @@
 {:else}
   <button
     on:click={() => {
-      actions = dfs.start([startNode, middleNode, endNode]);
-      actionIndex = 0;
-      // gen = dfs.startGenerator([startNode, middleNode, endNode]);
+      // actions = dfs.start([startNode, middleNode, endNode]);
+      // actionIndex = 0;
+      gen = dfs.startGenerator([startNode, middleNode, endNode]);
     }}
   >
     Load Algorithm

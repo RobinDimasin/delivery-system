@@ -3,6 +3,7 @@ import type { Sketch } from "p5-svelte";
 import type p5 from "p5";
 import type { Control } from "../types";
 import type { AlgorithmActionType } from "../algorithm/Algorithm";
+import type { Canvas } from "../Canvas";
 
 export type ElementConfig = {
   id?: string;
@@ -41,6 +42,7 @@ export default abstract class Element<
 
   #config: Required<Config & ElementConfig>;
   #state: Required<State & ElementState>;
+  #canvas: Canvas | undefined;
 
   constructor(
     type: ElementType,
@@ -174,5 +176,13 @@ export default abstract class Element<
 
   get renderer() {
     return this.#state.renderer;
+  }
+
+  get canvas() {
+    return this.#canvas;
+  }
+
+  set canvas(canvas: Canvas) {
+    this.#canvas = canvas;
   }
 }
