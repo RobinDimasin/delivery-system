@@ -10,6 +10,7 @@ export type ElementConfig = {
   y: number;
   z: number;
   draggable: boolean;
+  scaleWithZoom?: boolean;
 };
 
 export type ElementState = {
@@ -22,6 +23,7 @@ export type ElementState = {
   hovering: boolean;
   render: string;
   renderer: Record<string, (p5: p5) => void>;
+  scaleWithZoom: boolean;
 };
 
 export enum ElementType {
@@ -52,6 +54,7 @@ export default abstract class Element<
       y: 0,
       z: 0,
       draggable: false,
+      scaleWithZoom: false,
       ...config,
     } as Required<Config & ElementConfig>;
 
@@ -69,6 +72,7 @@ export default abstract class Element<
       hovering: false,
       render: "default",
       renderer: {},
+      scaleWithZoom: this.#config.scaleWithZoom ?? false,
       ...state,
     } as Required<State & ElementState>;
   }

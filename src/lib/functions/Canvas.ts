@@ -48,12 +48,12 @@ export class Canvas extends EventEmitter {
     p5.setup = () => {
       this.config.setup(p5);
       img = p5.loadImage("image/manila.png");
+      p5.disableFriendlyErrors = true;
     };
     p5.draw = () => {
       p5.translate(this.#controls.view.x, this.#controls.view.y);
       p5.scale(this.#controls.view.zoom);
       this.config.draw(p5);
-
       p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
@@ -69,15 +69,15 @@ export class Canvas extends EventEmitter {
 
         element.state.selected = this.#selectedElement === element;
 
-        const renderer = element.state.renderer[element.state.render];
+        // const renderer = element.state.renderer[element.state.render];
 
-        p5.push();
+        // p5.push();
         // if (renderer) {
         //   renderer(p5);
         // } else {
         element.render(p5, this.#controls.view);
         // }
-        p5.pop();
+        // p5.pop();
       });
     };
 

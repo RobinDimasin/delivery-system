@@ -30,6 +30,7 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
         strokeWeight: 1,
         showArrowIn: false,
         showArrowOut: false,
+        scaleWithZoom: false,
         ...config,
       },
       {
@@ -37,13 +38,16 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
         strokeWeight: config.strokeWeight ?? 1,
         showArrowIn: config.showArrowIn ?? false,
         showArrowOut: config.showArrowOut ?? false,
+        scaleWithZoom: config.scaleWithZoom ?? false,
       }
     );
   }
 
   render(p5: p5, view: Control["view"]): void {
     p5.stroke(this.stroke);
-    p5.strokeWeight(this.strokeWeight);
+    if (this.state.scaleWithZoom) {
+      p5.strokeWeight(this.strokeWeight / view.zoom);
+    }
 
     const x1 = this.source.x;
     const y1 = this.source.y;
@@ -66,26 +70,26 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
       p5.stroke("red");
     }
 
+    p5.line(x1, y1, x2, y2);
+
     if (this.showArrowIn) {
-      this.drawArrow(p5, this.target, this.source);
+      this.drawArrow(p5, this.target, this.source, 2 / view.zoom);
     }
 
     if (this.showArrowOut) {
-      this.drawArrow(p5, this.source, this.target);
+      this.drawArrow(p5, this.source, this.target, 2 / view.zoom);
     }
 
-    p5.line(x1, y1, x2, y2);
+    p5.strokeWeight(1);
   }
 
   drawArrow(p5: p5, from: NodeElement, to: NodeElement, arrowSize: number = 2) {
     const dir = p5.createVector(from.x - to.x, from.y - to.y).normalize();
+    const tX = from.x - dir.x * arrowSize - dir.x * from.radius * 1.5;
+    const tY = from.y - dir.y * arrowSize - dir.y * from.radius * 1.5;
 
     p5.push();
-    p5.translate(
-      from.x - dir.x * arrowSize - dir.x * from.radius * 1.5,
-      from.y - dir.y * arrowSize - dir.y * from.radius * 1,
-      5
-    );
+    p5.translate(tX, tY);
     p5.rotate(dir.heading());
     p5.triangle(0, arrowSize / 2, 0, -arrowSize / 2, arrowSize, 0);
     p5.pop();

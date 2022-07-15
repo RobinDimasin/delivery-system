@@ -29,6 +29,7 @@ export enum AlgorithmActionType {
   BUILD_FINAL_PATH = "BUILD_FINAL_PATH",
   START_PROCESSING_NODE = "START_PROCESSING_NODE",
   PROCESSED_NODE = "PROCESSED_NODE",
+  PROCESSED_EDGE = "PROCESSED_EDGE",
   SHOW_CURRENT_PATH = "SHOW_CURRENT_PATH",
   SHOW_EDGE_DIRECTION = "SHOW_EDGE_DIRECTION",
 }
@@ -121,15 +122,51 @@ export default abstract class Algorithm {
     return actions;
   }
 
+  *startGenerator(locations: NodeElement[]) {
+    if (locations.length < 2) {
+      throw new Error("Not enough locations, must be at least 2");
+    }
+
+    locations = locations.filter((location) => location);
+
+    const path = new Array<NodeElement>();
+
+    for (let i = 0; i < locations.length - 1; i++) {
+      this.parentMap.clear();
+      const gen = this.processGenerator(locations[i], locations[i + 1]);
+
+      while (!gen.next().done) {
+        yield;
+      }
+
+      if (this.parentMap.has(locations[i + 1])) {
+        let child = locations[i + 1];
+
+        while (this.parentMap.has(child)) {
+          const parent = this.parentMap.get(child);
+          path.push(parent);
+          child = parent;
+        }
+      }
+    }
+  }
+
   abstract process(
     start: NodeElement,
     end: NodeElement
   ): Array<AlgorithmAction>;
 
+  abstract processGenerator(
+    start: NodeElement,
+    end: NodeElement
+  ): IterableIterator<any>;
+
   makeAction(
     actionType: AlgorithmActionType,
-    element: NodeElement | EdgeElement
+    element: NodeElement | EdgeElement,
+    save: boolean = false
   ) {
+    let action: AlgorithmAction | undefined;
     if (element instanceof NodeElement) {
       // if (actionType == AlgorithmActionType.HIGHLIGHT_ENDPOINTS) {
       //   return this.#actionHighlightEndpoint(element);
@@ -139,26 +176,41 @@ export default abstract class Algorithm {
 
       switch (actionType) {
         case AlgorithmActionType.HIGHLIGHT_ENDPOINTS:
-          return this.#actionHighlightEndpoint(element);
+          action = this.#actionHighlightEndpoint(element);
+          break;
         case AlgorithmActionType.NODE_PROCESSED:
-          return this.#actionNodeProcessed(element);
+          action = this.#actionNodeProcessed(element);
+          break;
         case AlgorithmActionType.BUILD_PATH_NODE:
-          return this.#actionBuildPathNode(element);
+          action = this.#actionBuildPathNode(element);
+          break;
         case AlgorithmActionType.ENQUEUE_NODE:
-          return this.#actionEnqueueNode(element);
+          action = this.#actionEnqueueNode(element);
+          break;
         case AlgorithmActionType.START_PROCESSING_NODE:
-          return this.#actionNodeProcessing(element);
+          action = this.#actionNodeProcessing(element);
+          break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
       }
     } else {
       switch (actionType) {
         case AlgorithmActionType.BUILD_PATH_EDGE:
-          return this.#actionBuildPathEdge(element);
+          action = this.#actionBuildPathEdge(element);
+          break;
+        case AlgorithmActionType.PROCESSED_EDGE:
+          action = this.#actionEdgeProcessed(element);
+          break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
       }
     }
+
+    if (action && save) {
+      this.actions.push(action);
+    }
+
+    return action;
   }
 
   #previousPathEdge = new Set<EdgeElement>();
@@ -248,7 +300,12 @@ export default abstract class Algorithm {
           actions.push(
             edge.makeChangeStateAction(
               AlgorithmActionType.SHOW_EDGE_DIRECTION,
-              AlgorithmStyles.EDGE.DEFAULT
+              {
+                ...AlgorithmStyles.EDGE.PROCESSED,
+                showArrowIn: false,
+                showArrowOut: false,
+                strokeWeight: 1,
+              }
             )
           );
         }
@@ -276,66 +333,51 @@ export default abstract class Algorithm {
   }
 
   #actionHighlightEndpoint(endpoint: NodeElement) {
-    const action = endpoint.makeChangeStateAction(
+    return endpoint.makeChangeStateAction(
       AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
       AlgorithmStyles.NODE.ENDPOINT
     );
-
-    this.actions.push(action);
-
-    return action;
   }
 
   #actionNodeProcessed(node: NodeElement) {
-    const action = node.makeChangeStateAction(
-      AlgorithmActionType.START_PROCESSING_NODE,
+    return node.makeChangeStateAction(
+      AlgorithmActionType.PROCESSED_EDGE,
       AlgorithmStyles.NODE.PROCESSED
     );
-    this.actions.push(action);
-
-    return action;
   }
 
   #actionNodeProcessing(node: NodeElement) {
-    const action = node.makeChangeStateAction(
+    return node.makeChangeStateAction(
       AlgorithmActionType.START_PROCESSING_NODE,
       AlgorithmStyles.NODE.PROCESSING
     );
-    this.actions.push(action);
-
-    return action;
   }
 
   #actionBuildPathNode(node: NodeElement) {
-    const action = node.makeChangeStateAction(
+    return node.makeChangeStateAction(
       AlgorithmActionType.BUILD_PATH_NODE,
       AlgorithmStyles.NODE.FINAL_PATH
     );
-
-    this.actions.push(action);
-
-    return action;
   }
 
   #actionBuildPathEdge(edge: EdgeElement) {
-    const action = edge.makeChangeStateAction(
+    return edge.makeChangeStateAction(
       AlgorithmActionType.BUILD_PATH_EDGE,
       AlgorithmStyles.EDGE.FINAL_PATH
     );
+  }
 
-    this.actions.push(action);
-
-    return action;
+  #actionEdgeProcessed(edge: EdgeElement) {
+    return edge.makeChangeStateAction(
+      AlgorithmActionType.PROCESSED_EDGE,
+      AlgorithmStyles.EDGE.PROCESSED
+    );
   }
 
   #actionEnqueueNode(node: NodeElement) {
-    const action = node.makeChangeStateAction(
+    return node.makeChangeStateAction(
       AlgorithmActionType.ENQUEUE_NODE,
       AlgorithmStyles.NODE.QUEUED
     );
-
-    this.actions.push(action);
-
-    return action;
   }
 }

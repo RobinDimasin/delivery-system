@@ -21,4 +21,11 @@ export default class AStar extends Algorithm {
 
     return actions;
   }
+
+  processGenerator(
+    start: NodeElement,
+    end: NodeElement
+  ): IterableIterator<any> {
+    throw new Error("Method not implemented.");
+  }
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import P5 from "p5-svelte";
   import DFS from "../functions/algorithm/types/DFS";
-  import { downloadJson } from "../functions/utility";
+  import { delay, downloadJson } from "../functions/utility";
   import graphBig from "../data/graph.json";
   import graphSmall from "../data/graph_small.json";
   import NetworkGraphCanvas from "../functions/NetworkGraphCanvas";
@@ -17,7 +17,16 @@
     height,
   });
 
-  let startNode, middleNode, endNode, dfs;
+  let startNode: NodeElement | undefined,
+    middleNode: NodeElement | undefined,
+    endNode: NodeElement | undefined;
+  let dfs: DFS | undefined;
+
+  let actionIndex = 0;
+  // const actions = dfs.start([startNode, middleNode, endNode]);
+  let actions: AlgorithmAction[] | undefined;
+
+  let gen: IterableIterator<any> | undefined;
 
   $: {
     networkGraph.setGraph(graph);
@@ -37,9 +46,6 @@
       edges: networkGraph.edges,
     });
   }
-  let actionIndex = 0;
-  // const actions = dfs.start([startNode, middleNode, endNode]);
-  let actions: AlgorithmAction[] | undefined;
 
   const previous = () => {
     if (actionIndex >= 0) {
@@ -61,11 +67,24 @@
 
   let interval;
 
+  let yieldInterval = 5;
+
   const start = () => {
     clearInterval(interval);
+
+    const started = new Date().getTime();
+    let processed = 0;
+
     interval = setInterval(() => {
-      for (let i = 0; i < 5; i++) {
+      const now = new Date().getTime();
+      const expected = Math.floor((now - started) / yieldInterval);
+
+      const need = expected - processed;
+
+      for (let i = 0; i < need; i++) {
+        // gen.next();
         next();
+        processed++;
       }
     }, 5);
   };
@@ -108,6 +127,7 @@
     on:click={() => {
       actions = dfs.start([startNode, middleNode, endNode]);
       actionIndex = 0;
+      // gen = dfs.startGenerator([startNode, middleNode, endNode]);
     }}
   >
     Load Algorithm

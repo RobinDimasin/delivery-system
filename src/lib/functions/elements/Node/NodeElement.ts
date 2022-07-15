@@ -1,6 +1,7 @@
 import type p5 from "p5";
 import Element, { ElementConfig, ElementState, ElementType } from "../Element";
 import type { Control, Position } from "../../types";
+import AlgorithmStyles from "../../algorithm/styles";
 
 export type NodeConfig = Position & {
   radius?: number;
@@ -30,12 +31,17 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
   }
 
   render(p5: p5, view: Control["view"]): void {
-    if (this.fill === this.config.fill && view.zoom <= 0.55) {
+    if (
+      (this.fill === AlgorithmStyles.NODE.DEFAULT.fill ||
+        this.fill === AlgorithmStyles.NODE.PROCESSED.fill) &&
+      view.zoom <= 0.55
+    ) {
       return;
     }
 
     p5.fill(this.fill);
     p5.stroke("#000");
+    p5.strokeWeight(1);
 
     if (this.selected) {
       p5.fill("red");
@@ -45,7 +51,11 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       p5.stroke("blue");
     }
 
-    p5.circle(this.x, this.y, this.radius * 2);
+    if (this.state.scaleWithZoom) {
+      p5.circle(this.x, this.y, (this.radius * 2) / view.zoom);
+    } else {
+      p5.circle(this.x, this.y, this.radius * 2);
+    }
   }
 
   isInside(x: number, y: number) {
