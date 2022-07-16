@@ -61,6 +61,15 @@ export class Canvas extends EventEmitter {
       p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
+        element.state.hidden = element.isHidden(this.#controls.view.zoom);
+        if (
+          element.state.hidden &&
+          !element.state.alwaysShow &&
+          !element.state.hovering
+        ) {
+          return;
+        }
+
         if (
           !element.isInsideScreen(
             this.config.width,
@@ -325,11 +334,16 @@ export class Canvas extends EventEmitter {
     if (this.#controls.view.zoom + zoom < 0.05) {
       return;
     }
+
     this.emit("zoom", { zoom });
 
     this.#controls.view.x -= wx * this.#config.width * zoom;
     this.#controls.view.y -= wy * this.#config.height * zoom;
     this.#controls.view.zoom += zoom;
+
+    this.#elementList.forEach((element) => {
+      element.state.hidden = element.isHidden(this.#controls.view.zoom);
+    });
   }
 
   addElement(...elements: Element[]) {
@@ -355,6 +369,10 @@ export class Canvas extends EventEmitter {
         (a, b) => a.state.z - b.state.z
       );
     }
+  }
+
+  setConfig<T extends keyof CanvasConfig>(config: T, value: CanvasConfig[T]) {
+    this.config[config] = value;
   }
 
   get elements() {

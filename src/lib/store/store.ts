@@ -10,4 +10,4 @@ export type Location = {
 export const locations = writable<Location[]>([]);
 
 export const isSelectingLocation = writable(false);
-export const isEditting = writable(false);
+export const isEditing = writable(false);

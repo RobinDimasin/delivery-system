@@ -34,6 +34,8 @@ export enum AlgorithmActionType {
   SHOW_EDGE_DIRECTION = "SHOW_EDGE_DIRECTION",
   NODE_DEFAULT = "NODE_DEFAULT",
   EDGE_DEFAULT = "EDGE_DEFAULT",
+  NODE_STATELESS = "NODE_STATELESS",
+  EDGE_STATELESS = "EDGE_STATELESS",
 }
 
 export type AlgorithmAction = {
@@ -132,6 +134,8 @@ export default abstract class Algorithm {
     locations = locations.filter((location) => location);
 
     const path = new Array<NodeElement>();
+
+    this.resetGraphVisual();
 
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
@@ -258,6 +262,9 @@ export default abstract class Algorithm {
         case AlgorithmActionType.NODE_DEFAULT:
           action = this.#actionNodeDefault(element);
           break;
+        case AlgorithmActionType.NODE_STATELESS:
+          action = this.#actionNodeStateless(element);
+          break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
       }
@@ -271,6 +278,9 @@ export default abstract class Algorithm {
           break;
         case AlgorithmActionType.EDGE_DEFAULT:
           action = this.#actionEdgeDefault(element);
+          break;
+        case AlgorithmActionType.EDGE_STATELESS:
+          action = this.#actionEdgeStateless(element);
           break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
@@ -466,12 +476,26 @@ export default abstract class Algorithm {
     );
   }
 
+  #actionNodeStateless(node: NodeElement) {
+    return node.makeChangeStateAction(
+      AlgorithmActionType.NODE_STATELESS,
+      AlgorithmStyles.NODE.STATELESS
+    );
+  }
+
+  #actionEdgeStateless(edge: EdgeElement) {
+    return edge.makeChangeStateAction(
+      AlgorithmActionType.EDGE_STATELESS,
+      AlgorithmStyles.EDGE.STATELESS
+    );
+  }
+
   resetGraphVisual() {
     for (const [node, edges] of this.graph.entries()) {
-      this.makeAction(AlgorithmActionType.NODE_DEFAULT, node).perform();
+      this.makeAction(AlgorithmActionType.NODE_STATELESS, node).perform();
 
       for (const { element: edge } of edges) {
-        this.makeAction(AlgorithmActionType.EDGE_DEFAULT, edge).perform();
+        this.makeAction(AlgorithmActionType.EDGE_STATELESS, edge).perform();
       }
     }
   }

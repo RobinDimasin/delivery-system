@@ -168,7 +168,7 @@ export default class NetworkGraphCanvas extends Canvas {
           );
         });
 
-        if (!existingEdge) {
+        if (!existingEdge && this.config.editable) {
           const edge = new EdgeElement({
             z: 0,
             source: previousSelectedElement,

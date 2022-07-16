@@ -15,7 +15,7 @@
   import Dijkstra from "../functions/algorithm/types/Dijkstra";
   import Interface from "./Interface.svelte";
   import { createEventDispatcher } from "svelte";
-  import { isEditting, isSelectingLocation, locations } from "../store/store";
+  import { isEditing, isSelectingLocation, locations } from "../store/store";
 
   const dispatch = createEventDispatcher();
 
@@ -29,12 +29,16 @@
     height,
   });
 
-  isEditting.subscribe((editting) => {
-    networkGraph.config.editable = editting;
+  isEditing.subscribe((editing) => {
+    networkGraph.setConfig("editable", editing);
   });
 
   networkGraph.on("selectElement", ({ element }) => {
     if (element instanceof NodeElement && $isSelectingLocation) {
+      if ($locations.find(({ node }) => node === element)) {
+        return;
+      }
+
       const color = makeColor($locations.length);
 
       locations.update((locations) => {
@@ -45,7 +49,7 @@
           name = makeAlphabetID(tryCount++);
         } while (locations.find((location) => location.name === name));
 
-        return [...locations, { node: element, name, color }];
+        return [{ node: element, name, color }, ...locations];
       });
 
       networkGraph.deselectElement();
@@ -70,16 +74,6 @@
 
   $: {
     networkGraph.setGraph(graph);
-
-    // startNode = networkGraph.nodes.find(
-    //   (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
-    // ) as NodeElement;
-    // middleNode = networkGraph.nodes.find(
-    //   (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
-    // ) as NodeElement;
-    // endNode = networkGraph.nodes.find(
-    //   (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
-    // ) as NodeElement;
 
     algorithm = new Dijkstra({
       nodes: networkGraph.nodes,
@@ -141,11 +135,11 @@
 <Interface
   onLocationHoverIn={({ node }) => {
     node.state.hovering = true;
-    node.state.radius *= 2;
+    // node.state.radius *= 2;
   }}
   onLocationHoverOut={({ node }) => {
     node.state.hovering = false;
-    node.state.radius = node.config.radius;
+    // node.state.radius = node.config.radius;
   }}
   onLocationClick={({ node }) => {
     networkGraph.handleElementClick(node);
@@ -187,10 +181,10 @@
     <button
       class="btn btn-primary"
       on:click={() => {
-        // actions = algorithm.start($locations.map((location) => location.node));
+        // actions = algorithm.start($locations.reverse().map((location) => location.node));
         // actionIndex = 0;
         gen = algorithm.startGenerator(
-          $locations.map((location) => location.node)
+          $locations.reverse().map((location) => location.node)
         );
       }}
     >

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type NodeElement from "../functions/elements/Node/NodeElement";
 
-  import { isEditting, locations } from "../store/store";
+  import { isEditing, locations } from "../store/store";
   import type { Location } from "../store/store";
   import { isSelectingLocation } from "../store/store";
 
@@ -9,6 +9,26 @@
   export let onLocationHoverIn = (location: Location) => {};
   export let onLocationHoverOut = (location: Location) => {};
   export let onLocationClick = (location: Location) => {};
+
+  let locationsContainer: HTMLDivElement | undefined;
+
+  const scrollLocationsContainerDown = () => {
+    if (locationsContainer) {
+      locationsContainer.scrollTop = locationsContainer.scrollHeight;
+    }
+  };
+
+  isSelectingLocation.subscribe((isSelecting) => {
+    if (isSelecting) {
+      scrollLocationsContainerDown();
+    }
+  });
+
+  locations.subscribe(() => {
+    if (locationsContainer) {
+      scrollLocationsContainerDown();
+    }
+  });
 
   let collapse = false;
 </script>
@@ -24,10 +44,7 @@
   <div class="card card-compact bg-base-100 shadow-xl">
     <div class="card-body space-y-1">
       <div class="form-control">
-        <label
-          class="label cursor-pointer"
-          on:click={() => console.log("click")}
-        >
+        <label class="label cursor-pointer">
           <span class="label-text font-bold uppercase">Edit Map</span>
           <input
             type="checkbox"
@@ -36,7 +53,7 @@
               // @ts-ignore
               const isChecked = !!e.target.checked;
 
-              isEditting.set(isChecked);
+              isEditing.set(isChecked);
             }}
           />
         </label>
@@ -67,75 +84,80 @@
           <p>New</p>
         </button>
       </div>
-      {#if $locations.length === 0 && !$isSelectingLocation}
-        <div class="p-2 border-2 border-dashed text-center">
-          <p class="uppercase font-bold text-gray-600">Empty</p>
-        </div>
-      {/if}
-
-      {#each $locations as location (location.node.id)}
-        <div
-          class="flex justify-between cursor-pointer p-2 border-2 border-dashed hover:bg-base-200"
-          on:mouseover={() => onLocationHoverIn(location)}
-          on:focus={() => onLocationHoverIn(location)}
-          on:mouseout={() => onLocationHoverOut(location)}
-          on:blur={() => onLocationHoverOut(location)}
-          on:click={() => onLocationClick(location)}
-        >
-          <div class="flex">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 my-auto"
-              viewBox="0 0 20 20"
-              fill={location.color}
-            >
-              <path
-                fill-rule="evenodd"
-                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <p class="my-auto px-2 font-bold text-black">{location.name}</p>
+      <div
+        class="max-h-64 overflow-y-auto space-y-1 space-y-reverse flex flex-col-reverse"
+        bind:this={locationsContainer}
+      >
+        {#if $locations.length === 0 && !$isSelectingLocation}
+          <div class="p-2 border-2 border-dashed text-center">
+            <p class="uppercase font-bold text-gray-600">Empty</p>
           </div>
-          <button
-            class="btn btn-square btn-error btn-xs hover:scale-105"
-            on:click={() => {
-              locations.update((locations) =>
-                locations.filter((loc) => loc.node !== location.node)
-              );
+        {/if}
 
-              onLocationHoverOut(location);
-              location.node.state.endpoint = false;
-            }}
+        {#if $isSelectingLocation}
+          <div
+            class="flex justify-between cursor-pointer p-2 border-2 border-base-300 border-dashed bg-base-200"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              /></svg
+            <p class="my-auto"><i>Please select a location</i></p>
+            <button
+              class="btn btn-error btn-xs hover:scale-105"
+              on:click={() => isSelectingLocation.set(false)}>Cancel</button
             >
-          </button>
-        </div>
-      {/each}
+          </div>
+        {/if}
 
-      {#if $isSelectingLocation}
-        <div
-          class="flex justify-between cursor-pointer p-2 border-2 border-base-300 border-dashed bg-base-200"
-        >
-          <p class="my-auto"><i>Please select a location</i></p>
-          <button
-            class="btn btn-error btn-xs hover:scale-105"
-            on:click={() => isSelectingLocation.set(false)}>Cancel</button
+        {#each $locations as location (location.node.id)}
+          <div
+            class="flex justify-between cursor-pointer p-2 border-2 border-dashed hover:bg-base-200"
+            on:mouseover={() => onLocationHoverIn(location)}
+            on:focus={() => onLocationHoverIn(location)}
+            on:mouseout={() => onLocationHoverOut(location)}
+            on:blur={() => onLocationHoverOut(location)}
+            on:click={() => onLocationClick(location)}
           >
-        </div>
-      {/if}
+            <div class="flex">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 my-auto"
+                viewBox="0 0 20 20"
+                fill={location.color}
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <p class="my-auto px-2 font-bold text-black">{location.name}</p>
+            </div>
+            <button
+              class="btn btn-square btn-error btn-xs hover:scale-105"
+              on:click={() => {
+                locations.update((locations) =>
+                  locations.filter((loc) => loc.node !== location.node)
+                );
+
+                onLocationHoverOut(location);
+                location.node.state.endpoint = false;
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                ><path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                /></svg
+              >
+            </button>
+          </div>
+        {/each}
+      </div>
     </div>
   </div>
   <slot />
