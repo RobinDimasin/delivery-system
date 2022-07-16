@@ -115,7 +115,7 @@ export default class Dijkstra extends Algorithm {
     return actions;
   }
 
-  *processGenerator(start: NodeElement, end: NodeElement) {
+  *processGenerator(start: NodeElement, end: NodeElement, skipActions = false) {
     //variables
     const visited = new Set<NodeElement>();
     const distances = new Map<NodeElement, number>();
@@ -152,21 +152,27 @@ export default class Dijkstra extends Algorithm {
       );
     }
 
-    this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start).perform();
+    if (!skipActions) {
+      console.log("1");
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start).perform();
 
-    this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
-    yield;
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
+      yield;
+    }
 
     while (!pq.isEmpty()) {
       const minNode = pq.dequeue();
       const currNode = minNode.node;
 
       if (currNode === end) {
-        const buildPathActions = this.buildPath(start, currNode);
+        if (!skipActions) {
+          console.log("2");
+          const buildPathActions = this.buildPath(start, currNode);
 
-        for (const action of buildPathActions) {
-          action.perform();
-          yield;
+          for (const action of buildPathActions) {
+            action.perform();
+            yield;
+          }
         }
         break;
       }
@@ -175,7 +181,8 @@ export default class Dijkstra extends Algorithm {
         continue;
       }
 
-      if (!(currNode === start || currNode === end)) {
+      if (!skipActions && !(currNode === start || currNode === end)) {
+        console.log("3");
         this.makeAction(
           AlgorithmActionType.START_PROCESSING_NODE,
           currNode
@@ -194,8 +201,11 @@ export default class Dijkstra extends Algorithm {
           continue;
         }
 
-        this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor).perform();
-        yield;
+        if (!skipActions) {
+          console.log("4");
+          this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor).perform();
+          yield;
+        }
 
         const alt = distances.get(currNode) + edge.weight;
         if (alt < distances.get(neighbor)) {
@@ -205,10 +215,15 @@ export default class Dijkstra extends Algorithm {
         }
       }
 
-      this.showCurrentPath(start, currNode).perform();
-
-      if (!(currNode === start || currNode === end)) {
-        this.makeAction(AlgorithmActionType.NODE_PROCESSED, currNode).perform();
+      if (!skipActions) {
+        console.log("5");
+        this.showCurrentPath(start, currNode).perform();
+        if (!(currNode === start || currNode === end)) {
+          this.makeAction(
+            AlgorithmActionType.NODE_PROCESSED,
+            currNode
+          ).perform();
+        }
       }
 
       yield;

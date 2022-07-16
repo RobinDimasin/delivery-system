@@ -45,6 +45,24 @@ export type AlgorithmAction = {
   skip?: boolean;
 };
 
+type PathSegment = {
+  from?: NodeElement;
+  to?: NodeElement;
+  edge?: EdgeElement;
+  weight: number;
+};
+
+export type Path = {
+  start: NodeElement;
+  end: NodeElement;
+  segments: PathSegment[];
+  renderer: IterableIterator<void>;
+  distance: number;
+  resetRenderer: () => IterableIterator<void>;
+  render: (resetGraphVisual: boolean) => void;
+  resetGraphVisual: () => void;
+};
+
 export default abstract class Algorithm {
   #type: AlgorithmType;
 
@@ -77,7 +95,169 @@ export default abstract class Algorithm {
     }
   }
 
+  computePaths(locations: NodeElement[]) {
+    this.emptyActions();
+
+    const paths = new Array<Path>();
+
+    for (let i = 0; i < locations.length - 1; i++) {
+      this.parentMap.clear();
+      const start = locations[i];
+      const end = locations[i + 1];
+      const gen = this.processGenerator(start, end, true);
+
+      while (!gen.next().done);
+
+      const segments = new Array<PathSegment>();
+
+      if (this.parentMap.has(locations[i + 1])) {
+        let child = locations[i + 1];
+        segments.push({
+          to: child,
+          weight: 0,
+        });
+
+        while (this.parentMap.has(child)) {
+          const parent = this.parentMap.get(child);
+
+          const edge = this.graph
+            .get(parent)
+            .find(
+              (edge) =>
+                edge.element.source === child || edge.element.target === child
+            );
+
+          segments.push({
+            from: parent,
+            to: child,
+            edge: edge.element,
+            weight: Math.hypot(parent.x - child.x, parent.y - child.y),
+          });
+
+          child = parent;
+        }
+      }
+
+      segments.reverse();
+
+      const newRenderer = () => this.pathRenderer(segments, true);
+
+      paths.push({
+        start,
+        end,
+        segments: segments,
+        renderer: this.pathRenderer(segments, true),
+        resetRenderer: function () {
+          this.renderer = newRenderer();
+
+          return this.renderer;
+        },
+        distance: segments.reduce(
+          (distance, segment) => distance + segment.weight,
+          0
+        ),
+        render: (resetGraphVisual = true) =>
+          this.renderPath(segments, resetGraphVisual),
+        resetGraphVisual: () => this.resetGraphVisual(),
+      });
+    }
+
+    // this.resetGraphVisual();
+
+    return paths.reverse();
+  }
+
+  *pathRenderer(path: PathSegment[], resetGraphVisual = false) {
+    yield;
+
+    if (resetGraphVisual) {
+      this.resetGraphVisual();
+    }
+
+    if (path.length === 0) {
+      return;
+    }
+
+    const renderEndpoints = () => {
+      const startingNode = path[0].from ?? path[0].to;
+      const endingSegment =
+        path[path.length - 1].to ?? path[path.length - 1].from;
+
+      if (startingNode) {
+        this.makeAction(
+          AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+          startingNode
+        ).perform();
+      }
+
+      if (endingSegment) {
+        this.makeAction(
+          AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+          endingSegment
+        ).perform();
+      }
+    };
+
+    yield;
+
+    for (let i = 0; i < path.length; i++) {
+      const { from, to, edge } = path[i];
+
+      const startingNode = from ?? to;
+
+      if (startingNode) {
+        this.makeAction(
+          i === 0
+            ? AlgorithmActionType.HIGHLIGHT_ENDPOINTS
+            : AlgorithmActionType.BUILD_PATH_NODE,
+          startingNode
+        ).perform();
+      }
+
+      if (edge) {
+        if (edge.source === from) {
+          edge
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowIn: true,
+            })
+            .perform();
+        } else {
+          edge
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowOut: true,
+            })
+            .perform();
+        }
+
+        this.makeAction(AlgorithmActionType.BUILD_PATH_EDGE, edge).perform();
+      }
+
+      const endingNode = to ?? from;
+
+      if (endingNode) {
+        this.makeAction(
+          i === path.length - 1
+            ? AlgorithmActionType.HIGHLIGHT_ENDPOINTS
+            : AlgorithmActionType.BUILD_PATH_NODE,
+          endingNode
+        ).perform();
+      }
+
+      renderEndpoints();
+
+      yield;
+    }
+  }
+
+  renderPath(path: PathSegment[], resetGraphVisual = false) {
+    const renderer = this.pathRenderer(path, resetGraphVisual);
+
+    while (!renderer.next().done);
+  }
+
   start(locations: NodeElement[]) {
+    this.emptyActions();
+
     if (locations.length < 2) {
       throw new Error("Not enough locations, must be at least 2");
     }
@@ -127,6 +307,8 @@ export default abstract class Algorithm {
   }
 
   *startGenerator(locations: NodeElement[]) {
+    this.emptyActions();
+
     if (locations.length < 2) {
       throw new Error("Not enough locations, must be at least 2");
     }
@@ -227,7 +409,8 @@ export default abstract class Algorithm {
 
   abstract processGenerator(
     start: NodeElement,
-    end: NodeElement
+    end: NodeElement,
+    skipActions?: boolean
   ): IterableIterator<any>;
 
   makeAction(
@@ -497,6 +680,12 @@ export default abstract class Algorithm {
       for (const { element: edge } of edges) {
         this.makeAction(AlgorithmActionType.EDGE_STATELESS, edge).perform();
       }
+    }
+  }
+
+  emptyActions() {
+    while (this.actions.length > 0) {
+      this.actions.pop();
     }
   }
 }

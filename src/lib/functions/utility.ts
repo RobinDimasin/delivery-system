@@ -172,3 +172,22 @@ export function getCenterOfPolygon(polygon: Point[]): Point {
     y: y / f,
   };
 }
+
+export const round = (value: number, decimal = 2) => {
+  return Math.floor(value * Math.pow(10, decimal)) / Math.pow(10, decimal);
+};
+
+export const formatDistance = (distance: number) => {
+  const formats = [
+    [1000, (dist: number) => round(dist / 1000, 2) + "km"],
+    [100000, (dist: number) => round(dist / 1000, 1) + "km"],
+  ] as const;
+
+  const format = formats.find((f) => f[0] > distance);
+
+  if (format) {
+    return format[1](distance);
+  } else {
+    return round(distance, 2) + "m";
+  }
+};
