@@ -137,9 +137,12 @@ export default class PolygonElement extends Element<
   }
 
   isInside(x: number, y: number) {
-    return isPointInsidePolygon(
-      { x, y },
-      this.points.map((point) => ({ x: point.x, y: point.y }))
+    return (
+      !this.state.hidden &&
+      isPointInsidePolygon(
+        { x, y },
+        this.points.map((point) => ({ x: point.x, y: point.y }))
+      )
     );
   }
 
@@ -156,9 +159,9 @@ export default class PolygonElement extends Element<
   }
 
   set hidden(b: boolean) {
-    super.hidden = b;
-    this.nodes.forEach((node) => (node.hidden = b));
-    this.edges.forEach((edge) => (edge.hidden = b));
+    this.state.hidden = b;
+    this.nodes.forEach((node) => (node.state.hidden = b));
+    this.edges.forEach((edge) => (edge.state.hidden = b));
   }
 
   get stroke() {
