@@ -56,7 +56,7 @@
   let startNode: NodeElement | undefined,
     middleNode: NodeElement | undefined,
     endNode: NodeElement | undefined;
-  let algorithm: DFS | undefined;
+  let algorithm: Dijkstra | undefined;
 
   let actionIndex = 0;
   // const actions = dfs.start([startNode, middleNode, endNode]);
@@ -67,17 +67,17 @@
   $: {
     networkGraph.setGraph(graph);
 
-    startNode = networkGraph.nodes.find(
-      (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
-    ) as NodeElement;
-    middleNode = networkGraph.nodes.find(
-      (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
-    ) as NodeElement;
-    endNode = networkGraph.nodes.find(
-      (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
-    ) as NodeElement;
+    // startNode = networkGraph.nodes.find(
+    //   (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
+    // ) as NodeElement;
+    // middleNode = networkGraph.nodes.find(
+    //   (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
+    // ) as NodeElement;
+    // endNode = networkGraph.nodes.find(
+    //   (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
+    // ) as NodeElement;
 
-    algorithm = new DFS({
+    algorithm = new Dijkstra({
       nodes: networkGraph.nodes,
       edges: networkGraph.edges,
     });
@@ -183,7 +183,7 @@
     <button
       class="btn btn-primary"
       on:click={() => {
-        // actions = algorithm.start([startNode, middleNode, endNode]);
+        // actions = algorithm.start($locations.map((location) => location.node));
         // actionIndex = 0;
         gen = algorithm.startGenerator(
           $locations.map((location) => location.node)
