@@ -86,7 +86,7 @@ export default class DFS extends Algorithm {
 
     // Functions to call when playing the visualization; change color, size, etc...
     const actions = new Array<AlgorithmAction>();
-    console.log(start, end);
+
     // Make starting node color red
     this.makeAction(
       AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
@@ -140,7 +140,9 @@ export default class DFS extends Algorithm {
           this.parentMap.set(child, node);
 
           // Make the neighboring node color gray, indicating it is in the stack
-          this.makeAction(AlgorithmActionType.ENQUEUE_NODE, child).perform();
+          if (!(node === start || node === end)) {
+            this.makeAction(AlgorithmActionType.ENQUEUE_NODE, child).perform();
+          }
           stack.push(child);
           yield;
         }

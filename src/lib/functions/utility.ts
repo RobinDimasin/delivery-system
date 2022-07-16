@@ -59,3 +59,33 @@ export function rainbowColor(value: number) {
 
   return RGB2Color(red, grn, blu);
 }
+
+export function makeAlphabetID(value: number) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  let id = "";
+
+  if (value === 0) {
+    return alphabet[0];
+  }
+
+  while (value > 0) {
+    id += alphabet[value % alphabet.length];
+    value = Math.floor(value / alphabet.length);
+  }
+
+  return id.split("").reverse().join("");
+}
+
+const colors = [
+  "#C74440",
+  "#2D70B3",
+  "#388C46",
+  "#FFCE00",
+  "#FA7E19",
+  "#6042A6",
+];
+
+export function makeColor(value: number) {
+  return colors[value % colors.length];
+}

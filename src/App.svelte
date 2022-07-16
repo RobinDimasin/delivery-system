@@ -6,7 +6,6 @@
 
 <main>
   <TailwindCSS />
-  <!-- <Interface /> -->
   <Graph />
 </main>
 

@@ -1,22 +1,122 @@
 <script lang="ts">
+  import type NodeElement from "../functions/elements/Node/NodeElement";
+
+  import { locations } from "../store/store";
+  import type { Location } from "../store/store";
+  import { isSelectingLocation } from "../store/store";
+
+  export let onLocationAdd = () => {};
+  export let onLocationHoverIn = (location: Location) => {};
+  export let onLocationHoverOut = (location: Location) => {};
+  export let onLocationClick = (location: Location) => {};
+
+  let collapse = false;
 </script>
 
-<div class="drawer">
-  <input id="my-drawer" type="checkbox" class="drawer-toggle" />
-  <div class="drawer-content">
-    <!-- Page content here -->
-    <label for="my-drawer" class="btn btn-primary drawer-button"
-      >Open drawer</label
-    >
+<div
+  class="absolute top-0 left-0 w-48 md:w-96 min-h-screen bg-base-100 p-8 space-y-2 shadow-2xl overflow-auto max-h-screen"
+>
+  <div class="card card-compact bg-primary shadow-xl">
+    <div class="card-body mx-auto">
+      <p class="text-2xl font-bold uppercase text-white">My Route Manila</p>
+    </div>
   </div>
-  <div class="drawer-side">
-    <label for="my-drawer" class="drawer-overlay" />
-    <ul class="menu p-4 overflow-y-auto w-80 bg-base-100 text-base-content">
-      <!-- Sidebar content here -->
-      <li><a>Sidebar Item 1</a></li>
-      <li><a>Sidebar Item 2</a></li>
-    </ul>
+  <div class="card card-compact bg-base-100 shadow-xl">
+    <div class="card-body space-y-1">
+      <div class="card-title flex justify-between">
+        <p>Locations</p>
+        <button
+          class={"btn btn-primary btn-sm btn-outline border-dashed border-2 " +
+            ($isSelectingLocation ? "invisible" : "visible")}
+          on:click={() => isSelectingLocation.set(true)}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <p>New</p>
+        </button>
+      </div>
+      {#if $locations.length === 0 && !$isSelectingLocation}
+        <div class="p-2 border-2 border-dashed text-center">
+          <p class="uppercase font-bold text-gray-600">Empty</p>
+        </div>
+      {/if}
+
+      {#each $locations as location (location.node.id)}
+        <div
+          class="flex justify-between cursor-pointer p-2 border-2 border-dashed hover:bg-base-200"
+          on:mouseover={() => onLocationHoverIn(location)}
+          on:focus={() => onLocationHoverIn(location)}
+          on:mouseout={() => onLocationHoverOut(location)}
+          on:blur={() => onLocationHoverOut(location)}
+          on:click={() => onLocationClick(location)}
+        >
+          <div class="flex">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 my-auto"
+              viewBox="0 0 20 20"
+              fill={location.color}
+            >
+              <path
+                fill-rule="evenodd"
+                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <p class="my-auto px-2 font-bold text-black">{location.name}</p>
+          </div>
+          <button
+            class="btn btn-square btn-error btn-xs hover:scale-105"
+            on:click={() => {
+              locations.update((locations) =>
+                locations.filter((loc) => loc.node !== location.node)
+              );
+
+              onLocationHoverOut(location);
+              location.node.state.endpoint = false;
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              /></svg
+            >
+          </button>
+        </div>
+      {/each}
+
+      {#if $isSelectingLocation}
+        <div
+          class="flex justify-between cursor-pointer p-2 border-2 border-base-300 border-dashed bg-base-200"
+        >
+          <p class="my-auto"><i>Please select a location</i></p>
+          <button
+            class="btn btn-error btn-xs hover:scale-105"
+            on:click={() => isSelectingLocation.set(false)}>Cancel</button
+          >
+        </div>
+      {/if}
+    </div>
   </div>
+  <slot />
 </div>
 
 <style>

@@ -1,12 +1,24 @@
 <script lang="ts">
   import P5 from "p5-svelte";
   import DFS from "../functions/algorithm/types/DFS";
-  import { delay, downloadJson } from "../functions/utility";
+  import {
+    delay,
+    downloadJson,
+    makeAlphabetID,
+    makeColor,
+  } from "../functions/utility";
   import graphBig from "../data/graph.json";
   import graphSmall from "../data/graph_small.json";
   import NetworkGraphCanvas from "../functions/NetworkGraphCanvas";
-  import type NodeElement from "../functions/elements/Node/NodeElement";
+  import NodeElement from "../functions/elements/Node/NodeElement";
   import type { AlgorithmAction } from "../functions/algorithm/Algorithm";
+  import Dijkstra from "../functions/algorithm/types/Dijkstra";
+  import Interface from "./Interface.svelte";
+  import { createEventDispatcher } from "svelte";
+  import { isSelectingLocation, locations } from "../store/store";
+
+  const dispatch = createEventDispatcher();
+
   let width = 900;
   let height = 600;
 
@@ -17,10 +29,34 @@
     height,
   });
 
+  networkGraph.on("selectElement", ({ element }) => {
+    if (element instanceof NodeElement && $isSelectingLocation) {
+      const color = makeColor($locations.length);
+
+      locations.update((locations) => {
+        let name: string;
+        let tryCount = 0;
+
+        do {
+          name = makeAlphabetID(tryCount++);
+        } while (locations.find((location) => location.name === name));
+
+        return [...locations, { node: element, name, color }];
+      });
+
+      networkGraph.deselectElement();
+
+      element.state.endpoint = true;
+      element.state.fill = color;
+      element.config.fill = color;
+      isSelectingLocation.set(false);
+    }
+  });
+
   let startNode: NodeElement | undefined,
     middleNode: NodeElement | undefined,
     endNode: NodeElement | undefined;
-  let dfs: DFS | undefined;
+  let algorithm: DFS | undefined;
 
   let actionIndex = 0;
   // const actions = dfs.start([startNode, middleNode, endNode]);
@@ -41,7 +77,7 @@
       (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
     ) as NodeElement;
 
-    dfs = new DFS({
+    algorithm = new DFS({
       nodes: networkGraph.nodes,
       edges: networkGraph.edges,
     });
@@ -67,7 +103,7 @@
 
   let interval;
 
-  let yieldInterval = 2;
+  let yieldInterval = 1;
 
   const start = () => {
     clearInterval(interval);
@@ -98,7 +134,19 @@
   <P5 sketch={networkGraph.setup} />
 </div>
 
-<div class="absolute top-0 left-0">
+<Interface
+  onLocationHoverIn={({ node }) => {
+    node.state.hovering = true;
+    node.state.radius *= 2;
+  }}
+  onLocationHoverOut={({ node }) => {
+    node.state.hovering = false;
+    node.state.radius = node.config.radius;
+  }}
+  onLocationClick={({ node }) => {
+    networkGraph.handleElementClick(node);
+  }}
+>
   <button
     class="btn btn-primary"
     on:click={() => downloadJson(networkGraph.toJSON())}
@@ -125,24 +173,27 @@
   </button>
 
   {#if actions || gen}
-    <button class="btn btn-primary" on:click={previous}>Previous</button>
+    <!-- <button class="btn btn-primary" on:click={previous}>Previous</button>
 
-    <button class="btn btn-primary" on:click={next}>Next</button>
-    <button class="btn btn-primary" on:click={start}>Start</button>
-    <button class="btn btn-primary" on:click={stop}>Stop</button>
+    <button class="btn btn-primary" on:click={next}>Next</button> -->
+    <button class="btn btn-primary" on:click={start}>Start Visualization</button
+    >
+    <!-- <button class="btn btn-primary" on:click={stop}>Stop</button> -->
   {:else}
     <button
       class="btn btn-primary"
       on:click={() => {
-        // actions = dfs.start([startNode, middleNode, endNode]);
+        // actions = algorithm.start([startNode, middleNode, endNode]);
         // actionIndex = 0;
-        gen = dfs.startGenerator([startNode, middleNode, endNode]);
+        gen = algorithm.startGenerator(
+          $locations.map((location) => location.node)
+        );
       }}
     >
-      Load Algorithm
+      Compute Path
     </button>
   {/if}
-</div>
+</Interface>
 
 <style>
   :global(body) {

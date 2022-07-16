@@ -21,7 +21,7 @@ const AlgorithmStyles = {
     },
     ENDPOINT: {
       fill: "blue",
-      radius: 8,
+      radius: 5,
       scaleWithZoom: true,
     },
     FINAL_PATH: {
@@ -41,6 +41,7 @@ const AlgorithmStyles = {
       showArrowOut: false,
       stroke: "#000",
       strokeWeight: 1,
+      scaleWithZoom: false,
     },
     PROCESSED: {
       stroke: "#45AD18",
