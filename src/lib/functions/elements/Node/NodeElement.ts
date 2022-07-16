@@ -68,6 +68,11 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
     } else {
       p5.circle(this.x, this.y, radius * 2);
     }
+
+    if ((this.hovering || this.selected) && this.state.label) {
+      p5.stroke("yellow");
+      p5.text(this.state.label, this.x, this.y);
+    }
   }
 
   isInside(x: number, y: number) {
