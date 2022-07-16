@@ -22,6 +22,7 @@ export default class NetworkGraphCanvas extends Canvas {
   #nodes = new Array<NodeElement>();
   #edges = new Array<EdgeElement>();
   #actionStack = new Array<() => void>();
+  #editable = false;
 
   constructor(
     config: Partial<NetworkGraphCanvasConfig> & Partial<CanvasConfig> = {}
@@ -106,6 +107,10 @@ export default class NetworkGraphCanvas extends Canvas {
 
   initEventListeners() {
     this.on("canvasClick", ({ x, y, previousSelectedElement }) => {
+      if (!this.config.editable) {
+        return;
+      }
+
       const node = new NodeElement({
         x,
         y,
@@ -163,7 +168,7 @@ export default class NetworkGraphCanvas extends Canvas {
           );
         });
 
-        if (!existingEdge) {
+        if (!existingEdge && this.config.editable) {
           const edge = new EdgeElement({
             z: 0,
             source: previousSelectedElement,

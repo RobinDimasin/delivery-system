@@ -32,6 +32,10 @@ export enum AlgorithmActionType {
   PROCESSED_EDGE = "PROCESSED_EDGE",
   SHOW_CURRENT_PATH = "SHOW_CURRENT_PATH",
   SHOW_EDGE_DIRECTION = "SHOW_EDGE_DIRECTION",
+  NODE_DEFAULT = "NODE_DEFAULT",
+  EDGE_DEFAULT = "EDGE_DEFAULT",
+  NODE_STATELESS = "NODE_STATELESS",
+  EDGE_STATELESS = "EDGE_STATELESS",
 }
 
 export type AlgorithmAction = {
@@ -131,6 +135,8 @@ export default abstract class Algorithm {
 
     const path = new Array<NodeElement>();
 
+    this.resetGraphVisual();
+
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
       const gen = this.processGenerator(locations[i], locations[i + 1]);
@@ -139,15 +145,78 @@ export default abstract class Algorithm {
         yield;
       }
 
+      const subPath = new Array<NodeElement>();
+
       if (this.parentMap.has(locations[i + 1])) {
         let child = locations[i + 1];
+        subPath.push(child);
 
         while (this.parentMap.has(child)) {
           const parent = this.parentMap.get(child);
-          path.push(parent);
+          subPath.push(parent);
           child = parent;
         }
       }
+
+      path.push(...subPath.reverse());
+
+      this.resetGraphVisual();
+      this.#previousPathEdge.clear();
+      this.#previousPathNode.clear();
+      yield;
+    }
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const from = path[i];
+      const to = path[i + 1];
+
+      this.makeAction(AlgorithmActionType.BUILD_PATH_NODE, from).perform(
+        (i / path.length) * 100 * 0.5
+      );
+      this.makeAction(AlgorithmActionType.BUILD_PATH_NODE, to).perform(
+        (i / path.length) * 100 * 0.5
+      );
+
+      const edge = this.graph
+        .get(from)
+        .find(
+          (edge) => edge.element.source === to || edge.element.target === to
+        );
+
+      if (edge) {
+        if (edge.element.source === from) {
+          edge.element
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowIn: true,
+            })
+            .perform();
+        } else {
+          edge.element
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowOut: true,
+            })
+            .perform();
+        }
+
+        this.makeAction(
+          AlgorithmActionType.BUILD_PATH_EDGE,
+          edge.element
+        ).perform((i / path.length) * 100 * 0.5);
+      }
+
+      if (locations.includes(from)) {
+        this.makeAction(
+          AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+          from
+        ).perform();
+        this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, to).perform();
+      }
+
+      if (locations.includes(to)) {
+        this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, to).perform();
+      }
+
+      yield;
     }
   }
 
@@ -190,6 +259,12 @@ export default abstract class Algorithm {
         case AlgorithmActionType.START_PROCESSING_NODE:
           action = this.#actionNodeProcessing(element);
           break;
+        case AlgorithmActionType.NODE_DEFAULT:
+          action = this.#actionNodeDefault(element);
+          break;
+        case AlgorithmActionType.NODE_STATELESS:
+          action = this.#actionNodeStateless(element);
+          break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
       }
@@ -200,6 +275,12 @@ export default abstract class Algorithm {
           break;
         case AlgorithmActionType.PROCESSED_EDGE:
           action = this.#actionEdgeProcessed(element);
+          break;
+        case AlgorithmActionType.EDGE_DEFAULT:
+          action = this.#actionEdgeDefault(element);
+          break;
+        case AlgorithmActionType.EDGE_STATELESS:
+          action = this.#actionEdgeStateless(element);
           break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
@@ -379,5 +460,43 @@ export default abstract class Algorithm {
       AlgorithmActionType.ENQUEUE_NODE,
       AlgorithmStyles.NODE.QUEUED
     );
+  }
+
+  #actionNodeDefault(node: NodeElement) {
+    return node.makeChangeStateAction(
+      AlgorithmActionType.NODE_DEFAULT,
+      AlgorithmStyles.NODE.DEFAULT
+    );
+  }
+
+  #actionEdgeDefault(edge: EdgeElement) {
+    return edge.makeChangeStateAction(
+      AlgorithmActionType.EDGE_DEFAULT,
+      AlgorithmStyles.EDGE.DEFAULT
+    );
+  }
+
+  #actionNodeStateless(node: NodeElement) {
+    return node.makeChangeStateAction(
+      AlgorithmActionType.NODE_STATELESS,
+      AlgorithmStyles.NODE.STATELESS
+    );
+  }
+
+  #actionEdgeStateless(edge: EdgeElement) {
+    return edge.makeChangeStateAction(
+      AlgorithmActionType.EDGE_STATELESS,
+      AlgorithmStyles.EDGE.STATELESS
+    );
+  }
+
+  resetGraphVisual() {
+    for (const [node, edges] of this.graph.entries()) {
+      this.makeAction(AlgorithmActionType.NODE_STATELESS, node).perform();
+
+      for (const { element: edge } of edges) {
+        this.makeAction(AlgorithmActionType.EDGE_STATELESS, edge).perform();
+      }
+    }
   }
 }

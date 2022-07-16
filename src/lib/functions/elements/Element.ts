@@ -3,6 +3,8 @@ import type { Sketch } from "p5-svelte";
 import type p5 from "p5";
 import type { Control } from "../types";
 import type { AlgorithmActionType } from "../algorithm/Algorithm";
+import type { Canvas } from "../Canvas";
+import { DEFAULT, DefaultType } from "../algorithm/styles";
 
 export type ElementConfig = {
   id?: string;
@@ -11,6 +13,8 @@ export type ElementConfig = {
   z: number;
   draggable: boolean;
   scaleWithZoom?: boolean;
+  hide: boolean;
+  alwaysShow: boolean;
 };
 
 export type ElementState = {
@@ -24,6 +28,8 @@ export type ElementState = {
   render: string;
   renderer: Record<string, (p5: p5) => void>;
   scaleWithZoom: boolean;
+  hidden: boolean;
+  alwaysShow: boolean;
 };
 
 export enum ElementType {
@@ -41,6 +47,7 @@ export default abstract class Element<
 
   #config: Required<Config & ElementConfig>;
   #state: Required<State & ElementState>;
+  #canvas: Canvas | undefined;
 
   constructor(
     type: ElementType,
@@ -55,6 +62,8 @@ export default abstract class Element<
       z: 0,
       draggable: false,
       scaleWithZoom: false,
+      hide: false,
+      alwaysShow: false,
       ...config,
     } as Required<Config & ElementConfig>;
 
@@ -72,7 +81,9 @@ export default abstract class Element<
       hovering: false,
       render: "default",
       renderer: {},
+      hidden: false,
       scaleWithZoom: this.#config.scaleWithZoom ?? false,
+      alwaysShow: false,
       ...state,
     } as Required<State & ElementState>;
   }
@@ -95,10 +106,16 @@ export default abstract class Element<
     return true;
   }
 
+  isHidden(zoom: number) {
+    return false;
+  }
+
   makeChangeStateAction<T extends State & ElementState>(
     type: AlgorithmActionType,
     values: Partial<{
-      [key in keyof T]: T[key] | ((...args: any) => T[key]);
+      [key in keyof T]:
+        | (T[key] | DefaultType)
+        | ((...args: any) => T[key] | DefaultType);
     }>
   ) {
     const originalValues: Partial<State & ElementState> = {};
@@ -112,11 +129,14 @@ export default abstract class Element<
       type,
       perform: (...args: any) => {
         for (const key of Object.keys(values)) {
+          const value = values[key];
           // @ts-ignore
           this.#state[key] =
-            typeof values[key] === "function"
-              ? values[key](...args)
-              : values[key];
+            value === DEFAULT
+              ? this.#config[key]
+              : typeof value === "function"
+              ? value(...args)
+              : value;
         }
       },
       undo: () => {
@@ -174,5 +194,13 @@ export default abstract class Element<
 
   get renderer() {
     return this.#state.renderer;
+  }
+
+  get canvas() {
+    return this.#canvas;
+  }
+
+  set canvas(canvas: Canvas) {
+    this.#canvas = canvas;
   }
 }

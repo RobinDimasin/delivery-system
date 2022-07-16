@@ -46,7 +46,7 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
   render(p5: p5, view: Control["view"]): void {
     p5.stroke(this.stroke);
     if (this.state.scaleWithZoom) {
-      p5.strokeWeight(this.strokeWeight / view.zoom);
+      p5.strokeWeight(this.strokeWeight / Math.min(1, view.zoom));
     }
 
     const x1 = this.source.x;
@@ -72,12 +72,14 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
 
     p5.line(x1, y1, x2, y2);
 
-    if (this.showArrowIn) {
-      this.drawArrow(p5, this.target, this.source, 2 / view.zoom);
-    }
+    if (view.zoom > 0.55) {
+      if (this.showArrowIn) {
+        this.drawArrow(p5, this.target, this.source, 2 / view.zoom);
+      }
 
-    if (this.showArrowOut) {
-      this.drawArrow(p5, this.source, this.target, 2 / view.zoom);
+      if (this.showArrowOut) {
+        this.drawArrow(p5, this.source, this.target, 2 / view.zoom);
+      }
     }
 
     p5.strokeWeight(1);

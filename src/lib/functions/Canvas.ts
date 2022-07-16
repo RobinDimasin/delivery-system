@@ -11,6 +11,7 @@ export type CanvasConfig = {
   height: number;
   setup: (_p5: p5) => void;
   draw: (_p5: p5) => void;
+  editable: boolean;
 };
 
 export class Canvas extends EventEmitter {
@@ -32,12 +33,15 @@ export class Canvas extends EventEmitter {
     this.#config = {
       width: 600,
       height: 600,
+      editable: false,
       setup: (p5: p5) => {
+        this.config.width = p5.windowWidth;
+        this.config.height = p5.windowHeight;
         const canvas = p5.createCanvas(this.config.width, this.config.height);
         // canvas.position(0, 0);
       },
       draw: (p5: p5) => {
-        p5.background(125, 125, 125);
+        p5.background(255);
       },
       ...config,
     };
@@ -57,6 +61,15 @@ export class Canvas extends EventEmitter {
       p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
+        element.state.hidden = element.isHidden(this.#controls.view.zoom);
+        if (
+          element.state.hidden &&
+          !element.state.alwaysShow &&
+          !element.state.hovering
+        ) {
+          return;
+        }
+
         if (
           !element.isInsideScreen(
             this.config.width,
@@ -83,19 +96,40 @@ export class Canvas extends EventEmitter {
 
     p5.frameRate(30);
 
+    p5.windowResized = () => {
+      this.config.width = p5.windowWidth;
+      this.config.height = p5.windowHeight;
+      p5.resizeCanvas(this.config.width, this.config.height);
+    };
+
     p5.mouseMoved = (event: MouseEvent) => {
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+
       this.hoverElement(p5.mouseX, p5.mouseY);
     };
 
     p5.mouseDragged = (event: MouseEvent) => {
-      this.dragElement(p5.mouseX, p5.mouseY);
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+
+      if (this.config.editable) {
+        this.dragElement(p5.mouseX, p5.mouseY);
+      }
 
       if (this.#pressedButton === 1) {
         this.dragScreen(event.clientX, event.clientY);
+        event.preventDefault();
       }
     };
 
     p5.mousePressed = (event: MouseEvent) => {
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+
       if (
         event.screenX <= this.config.width &&
         event.screenY <= this.config.height
@@ -109,7 +143,9 @@ export class Canvas extends EventEmitter {
     };
 
     p5.mouseReleased = (event: MouseEvent) => {
-      // this.deselectElement(p5.mouseX, p5.mouseY);
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
       this.handleMouseReleased();
 
       this.stopDragging(event.clientX, event.clientY);
@@ -117,6 +153,9 @@ export class Canvas extends EventEmitter {
     };
 
     p5.mouseWheel = (event: WheelEvent) => {
+      if (!(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
       const { x, y, deltaY } = event;
       this.zoom(x, y, deltaY);
     };
@@ -180,35 +219,43 @@ export class Canvas extends EventEmitter {
   }
 
   selectElement(element: Element) {
+    this.#previousSelectedElement = this.#selectedElement;
+
     if (this.#selectedElement) {
       this.emit("deselectElement", {
         element: this.#selectedElement,
       });
+      const same = this.#selectedElement === element;
       this.#selectedElement.state.selected = false;
+      this.#selectedElement = null;
+
+      if (same) {
+        return;
+      }
     }
 
-    this.#previousSelectedElement = this.#selectedElement;
     this.#selectedElement = element;
 
     if (this.#selectedElement) {
+      this.#selectedElement.state.selected = true;
       this.emit("selectElement", {
         element: this.#selectedElement,
         previousSelectedElement: this.#previousSelectedElement,
       });
-      this.#selectedElement.state.selected = true;
     }
   }
 
-  deselectElement(x: number, y: number) {
-    if (
-      this.#previousSelectedElement === this.#selectedElement &&
-      this.#selectedElement
-    ) {
+  deselectElement() {
+    this.#previousSelectedElement = this.#selectedElement;
+
+    if (this.#selectedElement) {
       this.emit("deselectElement", {
         element: this.#selectedElement,
       });
       this.#selectedElement.state.selected = false;
     }
+
+    this.#selectedElement = null;
   }
 
   dragElement(x: number, y: number) {
@@ -287,15 +334,23 @@ export class Canvas extends EventEmitter {
     if (this.#controls.view.zoom + zoom < 0.05) {
       return;
     }
+
     this.emit("zoom", { zoom });
 
     this.#controls.view.x -= wx * this.#config.width * zoom;
     this.#controls.view.y -= wy * this.#config.height * zoom;
     this.#controls.view.zoom += zoom;
+
+    this.#elementList.forEach((element) => {
+      element.state.hidden = element.isHidden(this.#controls.view.zoom);
+    });
   }
 
   addElement(...elements: Element[]) {
-    elements.forEach((el) => this.elements.set(el.id, el));
+    elements.forEach((el) => {
+      this.elements.set(el.id, el);
+      el.canvas = this;
+    });
 
     this.#elementList = Array.from(this.elements.values()).sort(
       (a, b) => a.state.z - b.state.z
@@ -314,6 +369,10 @@ export class Canvas extends EventEmitter {
         (a, b) => a.state.z - b.state.z
       );
     }
+  }
+
+  setConfig<T extends keyof CanvasConfig>(config: T, value: CanvasConfig[T]) {
+    this.config[config] = value;
   }
 
   get elements() {
@@ -339,6 +398,10 @@ export class Canvas extends EventEmitter {
     if (this.#selectedElement) {
       this.#selectedElement.state.selected = true;
     }
+  }
+
+  get controls() {
+    return this.#controls;
   }
 }
 

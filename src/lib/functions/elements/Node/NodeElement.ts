@@ -11,6 +11,7 @@ export type NodeConfig = Position & {
 export type NodeState = {
   radius: number;
   fill: string;
+  endpoint: boolean;
 };
 
 export default class NodeElement extends Element<NodeConfig, NodeState> {
@@ -31,14 +32,6 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
   }
 
   render(p5: p5, view: Control["view"]): void {
-    if (
-      (this.fill === AlgorithmStyles.NODE.DEFAULT.fill ||
-        this.fill === AlgorithmStyles.NODE.PROCESSED.fill) &&
-      view.zoom <= 0.55
-    ) {
-      return;
-    }
-
     p5.fill(this.fill);
     p5.stroke("#000");
     p5.strokeWeight(1);
@@ -51,15 +44,47 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       p5.stroke("blue");
     }
 
-    if (this.state.scaleWithZoom) {
-      p5.circle(this.x, this.y, (this.radius * 2) / view.zoom);
+    let radius = this.radius;
+
+    if (this.hovering) {
+      radius *= 1.5;
+    }
+
+    if (this.state.endpoint) {
+      radius *= 2;
+    }
+
+    if (
+      this.state.scaleWithZoom ||
+      this.hovering ||
+      this.selected ||
+      this.state.endpoint
+    ) {
+      if (this.hovering || this.selected || this.state.endpoint) {
+        p5.circle(this.x, this.y, (radius * 2.5) / Math.min(1, view.zoom));
+      } else {
+        p5.circle(this.x, this.y, (radius * 2) / Math.min(1, view.zoom));
+      }
     } else {
-      p5.circle(this.x, this.y, this.radius * 2);
+      p5.circle(this.x, this.y, radius * 2);
     }
   }
 
   isInside(x: number, y: number) {
-    return Math.hypot(this.x - x, this.y - y) <= this.radius * 1.2;
+    let radius = this.radius;
+
+    if (this.hovering) {
+      radius *= 1.5;
+    }
+
+    if (this.canvas) {
+      return (
+        Math.hypot(this.x - x, this.y - y) <=
+        (radius * 1.2) / this.canvas.controls.view.zoom
+      );
+    } else {
+      return Math.hypot(this.x - x, this.y - y) <= radius * 1.2;
+    }
   }
 
   isInsideScreen(width: number, height: number, view: Control["view"]) {
@@ -73,6 +98,16 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       x <= width + outset &&
       y >= -outset &&
       y <= height + outset
+    );
+  }
+
+  isHidden(zoom: number) {
+    return (
+      this.fill !== AlgorithmStyles.NODE.ENDPOINT.fill &&
+      zoom <= 0.85 &&
+      !this.selected &&
+      !this.hovering &&
+      !this.state.endpoint
     );
   }
 

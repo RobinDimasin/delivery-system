@@ -13,6 +13,7 @@
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.30",
     "@tsconfig/svelte": "^2.0.1",
     "@types/p5": "^1.4.2",
+    "postcss": "^8.4.14",
     "svelte": "^3.44.0",
     "svelte-check": "^2.2.7",
     "svelte-preprocess": "^4.9.8",
@@ -22,8 +23,14 @@
   },
   "dependencies": {
     "@datastructures-js/priority-queue": "^6.1.1",
+    "autoprefixer": "^10.4.7",
+    "concurrently": "^7.2.2",
+    "cross-env": "^7.0.3",
+    "daisyui": "^2.19.0",
     "p5": "^1.4.1",
     "p5-svelte": "^3.1.2",
+    "postcss-cli": "^7",
+    "tailwindcss": "^3.1.6",
     "uuid": "^8.3.2"
   }
 }
