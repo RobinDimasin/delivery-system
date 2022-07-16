@@ -15,7 +15,7 @@
   import Dijkstra from "../functions/algorithm/types/Dijkstra";
   import Interface from "./Interface.svelte";
   import { createEventDispatcher } from "svelte";
-  import { isSelectingLocation, locations } from "../store/store";
+  import { isEditting, isSelectingLocation, locations } from "../store/store";
 
   const dispatch = createEventDispatcher();
 
@@ -27,6 +27,10 @@
   const networkGraph = NetworkGraphCanvas.fromJSON(graph, {
     width,
     height,
+  });
+
+  isEditting.subscribe((editting) => {
+    networkGraph.config.editable = editting;
   });
 
   networkGraph.on("selectElement", ({ element }) => {

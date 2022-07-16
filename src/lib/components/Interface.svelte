@@ -1,7 +1,7 @@
 <script lang="ts">
   import type NodeElement from "../functions/elements/Node/NodeElement";
 
-  import { locations } from "../store/store";
+  import { isEditting, locations } from "../store/store";
   import type { Location } from "../store/store";
   import { isSelectingLocation } from "../store/store";
 
@@ -19,6 +19,28 @@
   <div class="card card-compact bg-primary shadow-xl">
     <div class="card-body mx-auto">
       <p class="text-2xl font-bold uppercase text-white">My Route Manila</p>
+    </div>
+  </div>
+  <div class="card card-compact bg-base-100 shadow-xl">
+    <div class="card-body space-y-1">
+      <div class="form-control">
+        <label
+          class="label cursor-pointer"
+          on:click={() => console.log("click")}
+        >
+          <span class="label-text font-bold uppercase">Edit Map</span>
+          <input
+            type="checkbox"
+            class="toggle toggle-primary"
+            on:change={(e) => {
+              // @ts-ignore
+              const isChecked = !!e.target.checked;
+
+              isEditting.set(isChecked);
+            }}
+          />
+        </label>
+      </div>
     </div>
   </div>
   <div class="card card-compact bg-base-100 shadow-xl">

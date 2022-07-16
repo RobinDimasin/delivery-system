@@ -11,6 +11,7 @@ export type CanvasConfig = {
   height: number;
   setup: (_p5: p5) => void;
   draw: (_p5: p5) => void;
+  editable: boolean;
 };
 
 export class Canvas extends EventEmitter {
@@ -32,6 +33,7 @@ export class Canvas extends EventEmitter {
     this.#config = {
       width: 600,
       height: 600,
+      editable: false,
       setup: (p5: p5) => {
         this.config.width = p5.windowWidth;
         this.config.height = p5.windowHeight;
@@ -104,7 +106,9 @@ export class Canvas extends EventEmitter {
         return;
       }
 
-      this.dragElement(p5.mouseX, p5.mouseY);
+      if (this.config.editable) {
+        this.dragElement(p5.mouseX, p5.mouseY);
+      }
 
       if (this.#pressedButton === 1) {
         this.dragScreen(event.clientX, event.clientY);
