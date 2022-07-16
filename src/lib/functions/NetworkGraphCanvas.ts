@@ -107,7 +107,7 @@ export default class NetworkGraphCanvas extends Canvas {
 
   initEventListeners() {
     this.on("canvasClick", ({ x, y, previousSelectedElement }) => {
-      if (!this.config.editable) {
+      if (!this.config.editable || true) {
         return;
       }
 
@@ -169,6 +169,7 @@ export default class NetworkGraphCanvas extends Canvas {
         });
 
         if (!existingEdge && this.config.editable) {
+          return;
           const edge = new EdgeElement({
             z: 0,
             source: previousSelectedElement,

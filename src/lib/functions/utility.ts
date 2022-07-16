@@ -89,3 +89,86 @@ const colors = [
 export function makeColor(value: number) {
   return colors[value % colors.length];
 }
+
+export function randomColor() {
+  const random = () => Math.floor(Math.random() * 256);
+  return RGB2Color(random(), random(), random());
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+}
+
+export function colorAlpha(color: string, alpha: number) {
+  const { r, g, b } = hexToRgb(color);
+  return "rgba(" + [r, g, b, alpha].join(",") + ")";
+}
+
+type Point = {
+  x: number;
+  y: number;
+};
+
+export function isPointInsidePolygon(point: Point, polygon: Point[]) {
+  // ray-casting algorithm based on
+  // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html/pnpoly.html
+
+  const { x, y } = point;
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x,
+      yi = polygon[i].y;
+    const xj = polygon[j].x,
+      yj = polygon[j].y;
+
+    const intersect =
+      yi > y != yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
+function getAreaOfPolygon(polygon: Point[]) {
+  let area = 0;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i++) {
+    const point1 = polygon[i];
+    const point2 = polygon[j];
+    area += point1.x * point2.y;
+    area -= point1.y * point2.x;
+  }
+
+  area /= 2;
+
+  return area;
+}
+
+export function getCenterOfPolygon(polygon: Point[]): Point {
+  let x = 0,
+    y = 0,
+    f = 0;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i++) {
+    const point1 = polygon[i];
+    const point2 = polygon[j];
+    f = point1.x * point2.y - point2.x * point1.y;
+    x += (point1.x + point2.x) * f;
+    y += (point1.y + point2.y) * f;
+  }
+
+  f = getAreaOfPolygon(polygon) * 6;
+
+  return {
+    x: x / f,
+    y: y / f,
+  };
+}

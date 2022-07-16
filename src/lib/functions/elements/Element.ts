@@ -15,6 +15,7 @@ export type ElementConfig = {
   scaleWithZoom?: boolean;
   hide: boolean;
   alwaysShow: boolean;
+  label?: string;
 };
 
 export type ElementState = {
@@ -30,6 +31,7 @@ export type ElementState = {
   scaleWithZoom: boolean;
   hidden: boolean;
   alwaysShow: boolean;
+  label?: string;
 };
 
 export enum ElementType {
@@ -84,6 +86,7 @@ export default abstract class Element<
       hidden: false,
       scaleWithZoom: this.#config.scaleWithZoom ?? false,
       alwaysShow: false,
+      label: this.#config.label ?? this.id.slice(0, 4),
       ...state,
     } as Required<State & ElementState>;
   }
@@ -97,6 +100,8 @@ export default abstract class Element<
 
   onDeselect() {}
 
+  onDelete() {}
+
   addStateRenderer(state: string, render: (p5: p5) => void) {
     // @ts-ignore
     this.#state.renderer[state] = render;
@@ -107,7 +112,7 @@ export default abstract class Element<
   }
 
   isHidden(zoom: number) {
-    return false;
+    return this.hidden;
   }
 
   makeChangeStateAction<T extends State & ElementState>(
@@ -202,5 +207,14 @@ export default abstract class Element<
 
   set canvas(canvas: Canvas) {
     this.#canvas = canvas;
+  }
+
+  get hidden() {
+    return this.state.hidden;
+  }
+
+  set hidden(b: boolean) {
+    // @ts-ignore
+    this.state.hidden = b;
   }
 }

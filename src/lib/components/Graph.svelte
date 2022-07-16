@@ -1,8 +1,6 @@
 <script lang="ts">
   import P5 from "p5-svelte";
-  import DFS from "../functions/algorithm/types/DFS";
   import {
-    delay,
     downloadJson,
     makeAlphabetID,
     makeColor,
@@ -14,51 +12,70 @@
   import type { AlgorithmAction } from "../functions/algorithm/Algorithm";
   import Dijkstra from "../functions/algorithm/types/Dijkstra";
   import Interface from "./Interface.svelte";
-  import { createEventDispatcher } from "svelte";
-  import { isEditing, isSelectingLocation, locations } from "../store/store";
-
-  const dispatch = createEventDispatcher();
+  import {
+    isEditing,
+    areas,
+    isSelectingLocation,
+    isMakingArea,
+    editingPolygon,
+    locations,
+    networkGraph,
+  } from "../store/store";
 
   let width = 900;
   let height = 600;
 
   let graph = graphSmall;
 
-  const networkGraph = NetworkGraphCanvas.fromJSON(graph, {
-    width,
-    height,
-  });
+  networkGraph.set(
+    NetworkGraphCanvas.fromJSON(graph, {
+      width,
+      height,
+    })
+  );
 
   isEditing.subscribe((editing) => {
-    networkGraph.setConfig("editable", editing);
+    $networkGraph.setConfig("editable", editing);
   });
 
-  networkGraph.on("selectElement", ({ element }) => {
-    if (element instanceof NodeElement && $isSelectingLocation) {
-      if ($locations.find(({ node }) => node === element)) {
-        return;
+  $networkGraph.on("selectElement", ({ element }) => {
+    if (element instanceof NodeElement) {
+      if ($isSelectingLocation) {
+        if ($locations.find(({ node }) => node === element)) {
+          return;
+        }
+
+        const color = makeColor($locations.length);
+
+        locations.update((locations) => {
+          let name: string;
+          let tryCount = 0;
+
+          do {
+            name = makeAlphabetID(tryCount++);
+          } while (locations.find((location) => location.name === name));
+
+          return [{ node: element, name, color }, ...locations];
+        });
+
+        $networkGraph.deselectElement();
+
+        element.state.endpoint = true;
+        element.state.fill = color;
+        element.config.fill = color;
+        isSelectingLocation.set(false);
       }
-
-      const color = makeColor($locations.length);
-
-      locations.update((locations) => {
-        let name: string;
-        let tryCount = 0;
-
-        do {
-          name = makeAlphabetID(tryCount++);
-        } while (locations.find((location) => location.name === name));
-
-        return [{ node: element, name, color }, ...locations];
-      });
-
-      networkGraph.deselectElement();
-
-      element.state.endpoint = true;
-      element.state.fill = color;
-      element.config.fill = color;
-      isSelectingLocation.set(false);
     }
+  });
+
+  $networkGraph.on("canvasClick", ({ x, y, previousSelectedElement }) => {
+    if (!$isMakingArea || !$editingPolygon) {
+      return;
+    }
+
+    $networkGraph.addElement($editingPolygon);
+
+    $editingPolygon.addPoint(x, y);
   });
 
   let startNode: NodeElement | undefined,
@@ -73,11 +90,11 @@
   let gen: IterableIterator<any> | undefined;
 
   $: {
-    networkGraph.setGraph(graph);
+    $networkGraph.setGraph(graph);
 
     algorithm = new Dijkstra({
-      nodes: networkGraph.nodes,
-      edges: networkGraph.edges,
+      nodes: $networkGraph.nodes,
+      edges: $networkGraph.edges,
     });
   }
 
@@ -129,7 +146,7 @@
 </script>
 
 <div class="overflow-hidden">
-  <P5 sketch={networkGraph.setup} />
+  <P5 sketch={$networkGraph.setup} />
 </div>
 
 <Interface
@@ -142,14 +159,35 @@
     // node.state.radius = node.config.radius;
   }}
   onLocationClick={({ node }) => {
-    networkGraph.handleElementClick(node);
+    $networkGraph.handleElementClick(node);
   }}
 >
   <button
     class="btn btn-primary"
-    on:click={() => downloadJson(networkGraph.toJSON())}
+    on:click={() => downloadJson($networkGraph.toJSON())}
   >
     Download Graph
+  </button>
+
+  <button
+    class="btn btn-primary"
+    on:click={() =>
+      downloadJson(
+        $areas.map((area) => {
+          return {
+            points: area.polygon.nodes.map((node) => {
+              return {
+                x: node.x,
+                y: node.y,
+              };
+            }),
+            label: area.label,
+            color: area.color,
+          };
+        })
+      )}
+  >
+    Download Labels
   </button>
 
   <button
