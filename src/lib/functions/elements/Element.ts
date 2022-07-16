@@ -112,7 +112,7 @@ export default abstract class Element<
   }
 
   isHidden(zoom: number) {
-    return false;
+    return this.hidden;
   }
 
   makeChangeStateAction<T extends State & ElementState>(
@@ -207,5 +207,14 @@ export default abstract class Element<
 
   set canvas(canvas: Canvas) {
     this.#canvas = canvas;
+  }
+
+  get hidden() {
+    return this.state.hidden;
+  }
+
+  set hidden(b: boolean) {
+    // @ts-ignore
+    this.state.hidden = b;
   }
 }

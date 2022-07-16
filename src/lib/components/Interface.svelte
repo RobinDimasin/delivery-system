@@ -214,6 +214,17 @@
                 }}
               />
             </div>
+            <input
+              type="checkbox"
+              class="toggle toggle-primary"
+              checked={!area.polygon.hidden}
+              on:change={(e) => {
+                // @ts-ignore
+                const isChecked = !!e.target.checked;
+
+                area.polygon.hidden = !isChecked;
+              }}
+            />
             <button
               class="btn btn-square btn-error btn-xs hover:scale-105"
               on:click={() => {

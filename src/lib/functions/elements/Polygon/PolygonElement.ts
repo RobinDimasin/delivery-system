@@ -155,6 +155,12 @@ export default class PolygonElement extends Element<
     }
   }
 
+  set hidden(b: boolean) {
+    super.hidden = b;
+    this.nodes.forEach((node) => (node.hidden = b));
+    this.edges.forEach((edge) => (edge.hidden = b));
+  }
+
   get stroke() {
     return this.state.stroke;
   }

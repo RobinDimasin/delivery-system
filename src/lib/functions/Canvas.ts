@@ -61,9 +61,9 @@ export class Canvas extends EventEmitter {
       p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
-        element.state.hidden = element.isHidden(this.#controls.view.zoom);
         if (
-          element.state.hidden &&
+          (element.state.hidden ||
+            element.isHidden(this.#controls.view.zoom)) &&
           !element.state.alwaysShow &&
           !element.state.hovering
         ) {
@@ -340,10 +340,6 @@ export class Canvas extends EventEmitter {
     this.#controls.view.x -= wx * this.#config.width * zoom;
     this.#controls.view.y -= wy * this.#config.height * zoom;
     this.#controls.view.zoom += zoom;
-
-    this.#elementList.forEach((element) => {
-      element.state.hidden = element.isHidden(this.#controls.view.zoom);
-    });
   }
 
   newElement<T extends Element>(
