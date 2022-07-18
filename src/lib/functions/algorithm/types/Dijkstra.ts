@@ -153,7 +153,6 @@ export default class Dijkstra extends Algorithm {
     }
 
     if (!skipActions) {
-      console.log("1");
       this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start).perform();
 
       this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
@@ -166,7 +165,6 @@ export default class Dijkstra extends Algorithm {
 
       if (currNode === end) {
         if (!skipActions) {
-          console.log("2");
           const buildPathActions = this.buildPath(start, currNode);
 
           for (const action of buildPathActions) {
@@ -182,7 +180,6 @@ export default class Dijkstra extends Algorithm {
       }
 
       if (!skipActions && !(currNode === start || currNode === end)) {
-        console.log("3");
         this.makeAction(
           AlgorithmActionType.START_PROCESSING_NODE,
           currNode
@@ -202,7 +199,6 @@ export default class Dijkstra extends Algorithm {
         }
 
         if (!skipActions) {
-          console.log("4");
           this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor).perform();
           yield;
         }
@@ -216,7 +212,6 @@ export default class Dijkstra extends Algorithm {
       }
 
       if (!skipActions) {
-        console.log("5");
         this.showCurrentPath(start, currNode).perform();
         if (!(currNode === start || currNode === end)) {
           this.makeAction(

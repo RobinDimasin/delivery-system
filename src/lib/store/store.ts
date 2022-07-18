@@ -39,7 +39,10 @@ export const graph = writable<Graph>(graphSmall);
 export const networkGraph = writable(new NetworkGraphCanvas({}));
 export const algorithm =
   writable<new (graph: GraphRawInput) => Algorithm>(Dijkstra);
-export const paths = writable(new Array<Path>());
+export const algorithmResult = writable<
+  ReturnType<Algorithm["compute"]> | undefined
+>();
+export const isComputingPath = writable<boolean | undefined>(undefined);
 
 export const locations = writable<Location[]>([]);
 export const areas = writable<Area[]>([]);

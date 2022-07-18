@@ -1,6 +1,6 @@
 import type EdgeElement from "../elements/Edge/EdgeElement";
 import NodeElement from "../elements/Node/NodeElement";
-import { increaseBrightness } from "../utility";
+import { delay, increaseBrightness } from "../utility";
 import AlgorithmStyles from "./styles";
 
 export enum AlgorithmType {
@@ -79,26 +79,25 @@ export default abstract class Algorithm {
 
     this.graph = new Map();
 
-    for (const node of graph.nodes) {
-      const edges = graph.edges
-        .filter(
-          (edge) => edge.source.id === node.id || edge.target.id === node.id
-        )
-        .map((edge) => {
-          return {
-            to: edge.source === node ? edge.target : edge.source,
-            element: edge,
-          };
+    for (const edge of graph.edges) {
+      const { source, target } = edge;
+      for (const node of [source, target]) {
+        if (!this.graph.has(node)) {
+          this.graph.set(node, new Array());
+        }
+        this.graph.get(node).push({
+          to: node === source ? target : source,
+          element: edge,
         });
-
-      this.graph.set(node, edges);
+      }
     }
   }
 
-  computePaths(locations: NodeElement[]) {
+  compute(locations: NodeElement[]) {
     this.emptyActions();
 
     const paths = new Array<Path>();
+    let cnt = 0;
 
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
@@ -140,15 +139,15 @@ export default abstract class Algorithm {
 
       segments.reverse();
 
-      const newRenderer = () => this.pathRenderer(segments, true);
+      const newPathRenderer = () => this.pathRenderer(segments, true);
 
       paths.push({
         start,
         end,
         segments: segments,
-        renderer: this.pathRenderer(segments, true),
+        renderer: newPathRenderer(),
         resetRenderer: function () {
-          this.renderer = newRenderer();
+          this.renderer = newPathRenderer();
 
           return this.renderer;
         },
@@ -162,9 +161,58 @@ export default abstract class Algorithm {
       });
     }
 
-    // this.resetGraphVisual();
+    const proccessGeneraator = () => this.startGenerator(locations);
 
-    return paths.reverse();
+    function* newProcessRenderer() {
+      const gen = proccessGeneraator();
+
+      while (!gen.next().done) {
+        for (let i = 0; i < 10; i++) {
+          gen.next();
+        }
+        yield;
+      }
+    }
+
+    function* newAllPathsRenderer() {
+      for (const path of paths) {
+        const renderer = path.resetRenderer();
+
+        while (!renderer.next().done) {
+          yield;
+        }
+      }
+    }
+
+    return {
+      process: {
+        renderer: newProcessRenderer(),
+        resetRenderer: function () {
+          this.renderer = newProcessRenderer();
+
+          return this.renderer;
+        },
+        render: (resetGraphVisual = true) => {
+          this.resetGraphVisual();
+          paths.forEach((path) => path.render(false));
+        },
+        resetGraphVisual: () => this.resetGraphVisual(),
+      },
+      allPaths: {
+        renderer: newAllPathsRenderer(),
+        resetRenderer: function () {
+          this.renderer = newAllPathsRenderer();
+
+          return this.renderer;
+        },
+        render: (resetGraphVisual = true) => {
+          this.resetGraphVisual();
+          paths.forEach((path) => path.render(false));
+        },
+        resetGraphVisual: () => this.resetGraphVisual(),
+      },
+      paths: [...paths].reverse(),
+    };
   }
 
   *pathRenderer(path: PathSegment[], resetGraphVisual = false) {

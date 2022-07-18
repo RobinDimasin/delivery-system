@@ -4,7 +4,8 @@
     locations,
     networkGraph,
     algorithm,
-    paths,
+    algorithmResult,
+    isComputingPath as isAlgorithmComputing,
   } from "../../store/store";
   import type { Location } from "../../store/store";
   import NodeInfo from "./NodeInfo.svelte";
@@ -133,17 +134,20 @@
         <button
           class="btn btn-primary btn-sm"
           on:click={async () => {
-            await delay(100);
             const algo = new $algorithm({
               nodes: $networkGraph.nodes,
               edges: $networkGraph.edges,
             });
 
-            paths.set(
-              algo.computePaths(
+            isAlgorithmComputing.set(true);
+
+            algorithmResult.set(
+              algo.compute(
                 [...$locations].reverse().map((location) => location.node)
               )
             );
+
+            isAlgorithmComputing.set(false);
           }}
         >
           <svg

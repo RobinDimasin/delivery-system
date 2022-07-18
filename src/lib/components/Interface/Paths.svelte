@@ -1,24 +1,19 @@
 <script lang="ts">
+  import type { Renderer } from "p5";
+
   import type { Path } from "src/lib/functions/algorithm/Algorithm";
   import { onDestroy } from "svelte";
   import { formatDistance, round } from "../../functions/utility";
 
-  import { locations, paths } from "../../store/store";
+  import { isComputingPath, algorithmResult } from "../../store/store";
   import NodeInfo from "./NodeInfo.svelte";
 
   const MAP_TO_REAL_LIFE_RATIO = 361.58 / 99.25;
 
-  const renderers = new Map<Path, ReturnType<typeof setInterval>>();
-
-  let selectedPath: Path | undefined;
-  let isShowingAll = false;
-  let showingPath = new Set<Path>();
-  let showAllInterval: ReturnType<typeof setInterval> | undefined;
-
   const speedRange = {
-    min: 0.5,
-    max: 5,
-    numberOfSteps: 9,
+    min: 1,
+    max: 21,
+    numberOfSteps: 5,
     default: 1,
   };
 
@@ -29,192 +24,114 @@
 
   $: {
     yieldInterval;
-
-    console.log({ yieldInterval });
   }
 
-  const clearShowingPath = () => {
-    showingPath.clear();
-    showingPath = showingPath;
+  type Renderer = {
+    renderer: IterableIterator<void>;
+    resetRenderer: () => IterableIterator<void>;
+    render: (resetGraphVisual: boolean) => void;
+    resetGraphVisual: () => void;
   };
 
-  const stopRenderers = () => {
-    [...renderers].forEach(([path, interval]) => {
-      clearInterval(interval);
-      path.resetGraphVisual();
-    });
+  let currentRendererInterval: ReturnType<typeof setInterval> | undefined;
+  let currentRenderer: Renderer | undefined;
+
+  const stopRenderer = () => {
+    if (currentRenderer) {
+      currentRenderer.resetGraphVisual();
+    }
+    clearInterval(currentRendererInterval);
+    currentRenderer = null;
+  };
+
+  const startRenderer = (renderer: Renderer) => {
+    stopRenderer();
+    currentRenderer = renderer;
+    renderer.resetRenderer();
+
+    let last = new Date().getTime();
+
+    currentRendererInterval = setInterval(() => {
+      const now = new Date().getTime();
+      const need = Math.floor((now - last) / yieldInterval);
+
+      for (let i = 0; i < need; i++) {
+        const { done } = renderer.renderer.next();
+        if (done) {
+          renderer.render(true);
+        }
+        last = new Date().getTime();
+        if (done) {
+          break;
+        }
+      }
+    }, 100);
   };
 
   onDestroy(() => {
-    stopShowingAll();
-    stopRenderers();
+    stopRenderer();
   });
 
-  const startPathRendering = (path: Path, reset = true) => {
-    if (isShowingAll) return;
-    if (reset) {
-      stopPathRendering(path);
-      path.resetRenderer();
-    }
-
-    let last = new Date().getTime();
-
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const need = Math.floor((now - last) / yieldInterval);
-
-      for (let i = 0; i < need; i++) {
-        if (!renderers.has(path)) {
-          clearInterval(interval);
-          break;
-        }
-
-        const { done } = path.renderer.next();
-        if (done) {
-          path.render(true);
-        }
-        last = new Date().getTime();
-        if (done) {
-          break;
-        }
-      }
-    }, 100);
-
-    if (reset) {
-      const existingRenderer = renderers.get(path);
-
-      if (existingRenderer) {
-        clearInterval(existingRenderer);
-        renderers.delete(path);
-      }
-
-      renderers.set(path, interval);
-    }
-  };
-
-  const stopPathRendering = (path: Path) => {
-    if (path) {
-      clearInterval(renderers.get(path));
-      renderers.delete(path);
-      path.resetGraphVisual();
-    }
-  };
-
-  const selectPath = (path: Path) => {
-    if (isShowingAll) {
-      return;
-    }
-
-    stopPathRendering(selectedPath);
-
-    selectedPath = path;
-
-    startPathRendering(selectedPath, !renderers.has(selectedPath));
-  };
-
-  const deselectPath = () => {
-    if (isShowingAll) {
-      return;
-    }
-
-    if (selectedPath) {
-      stopPathRendering(selectedPath);
-      selectedPath = null;
-    }
-  };
-
-  const showAll = () => {
-    clearInterval(showAllInterval);
-    const _paths = [...$paths].reverse();
-
-    if (_paths.length === 0) {
-      return;
-    }
-
-    _paths[0].resetGraphVisual();
-
-    let last = new Date().getTime();
-    let pathIndex = 0;
-
-    for (const path of _paths) {
-      path.resetRenderer();
-    }
-
-    showAllInterval = setInterval(() => {
-      const now = new Date().getTime();
-      const need = Math.floor((now - last) / yieldInterval);
-
-      for (let i = 0; i < need; i++) {
-        clearShowingPath();
-
-        if (pathIndex >= _paths.length) {
-          for (const path of _paths) {
-            showingPath.add(path);
-            path.render(false);
-          }
-          break;
-        }
-
-        showingPath.add(_paths[pathIndex]);
-
-        const { done } = _paths[pathIndex].renderer.next();
-        last = new Date().getTime();
-        if (done) {
-          pathIndex++;
-          break;
-        }
-      }
-    }, 100);
-  };
-
-  const stopShowingAll = () => {
-    clearInterval(showAllInterval);
-    stopRenderers();
-    clearShowingPath();
-
-    if ($paths.length > 0) {
-      $paths[0].resetGraphVisual();
-    }
-  };
-
-  $: totalDistance = $paths.reduce(
+  $: totalDistance = ($algorithmResult?.paths ?? []).reduce(
     (distance, path) => distance + path.distance,
     0
   );
-
-  $: {
-    $paths;
-    isShowingAll = false;
-  }
-
-  $: if (isShowingAll) {
-    clearShowingPath();
-    stopRenderers();
-    showAll();
-  }
-
-  $: if (!isShowingAll) {
-    stopShowingAll();
-  }
 </script>
 
-{#if $paths.length > 0}
+{#if $algorithmResult}
   <div class="card card-compact bg-base-100 shadow-xl">
     <div class="card-body space-y-1">
       <div class="card-title flex justify-between">
         <p>Routes</p>
+        <button
+          class={`btn btn-sm btn-outline border-dashed border-2  ${
+            currentRenderer === $algorithmResult.process
+              ? "btn-error"
+              : "btn-primary"
+          }`}
+          on:click={() => {
+            if (currentRenderer !== $algorithmResult.process) {
+              startRenderer($algorithmResult.process);
+            } else {
+              stopRenderer();
+            }
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          {#if currentRenderer === $algorithmResult.process}
+            <p>Stop</p>
+          {:else}
+            <p>Show Process</p>
+          {/if}
+        </button>
       </div>
-
-      {#if $paths.length === 0}
+      {#if $algorithmResult.paths.length === 0}
         <div class="p-2 border-2 border-dashed text-center">
-          <p class="uppercase font-bold text-gray-600">Empty</p>
+          <p class="uppercase font-bold text-gray-600">
+            No Possible Route Found
+          </p>
         </div>
       {:else}
         <div class="p-2 border-2 border-primary text-right">
           <div class="text-gray-600 ">
             <div class="flex justify-between">
               <div class="flex">
-                <NodeInfo node={$paths[$paths.length - 1].start} />
+                <NodeInfo
+                  node={$algorithmResult.paths[
+                    $algorithmResult.paths.length - 1
+                  ].start}
+                />
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="h-5 w-5"
@@ -227,7 +144,7 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                <NodeInfo node={$paths[0].end} />
+                <NodeInfo node={$algorithmResult.paths[0].end} />
               </div>
               <div>
                 <span
@@ -235,21 +152,25 @@
                     totalDistance * MAP_TO_REAL_LIFE_RATIO
                   )}</span
                 >
-                <span class={selectedPath ? "cursor-not-allowed" : ""}>
+                <span>
                   <button
                     class={`btn btn-xs btn-outline border-dashed border-2 ${
-                      !isShowingAll ? "btn-primary" : "btn-error"
-                    } ${selectedPath ? "btn-disabled" : ""}`}
+                      currentRenderer === $algorithmResult.allPaths
+                        ? "btn-error"
+                        : "btn-primary"
+                    }`}
                     on:click={() => {
-                      if (!selectedPath) {
-                        isShowingAll = !isShowingAll;
+                      if (currentRenderer !== $algorithmResult.allPaths) {
+                        startRenderer($algorithmResult.allPaths);
+                      } else {
+                        stopRenderer();
                       }
                     }}
                   >
-                    {#if !isShowingAll}
-                      <p>Show</p>
-                    {:else}
+                    {#if currentRenderer === $algorithmResult.allPaths}
                       <p>Stop</p>
+                    {:else}
+                      <p>Show</p>
                     {/if}
                   </button>
                 </span>
@@ -257,75 +178,62 @@
             </div>
           </div>
         </div>
-      {/if}
-
-      <div
-        class="max-h-32 overflow-y-auto space-y-1 space-y-reverse flex flex-col-reverse"
-      >
-        {#if $paths.length > 1}
-          {#each $paths as path (path.start.id + path.end.id)}
-            <div
-              class={`p-2 border-2 border-dashed hover:bg-base-300 ${
-                selectedPath === path || showingPath.has(path)
-                  ? "bg-base-300"
-                  : ""
-              }`}
-            >
-              <div class="flex justify-between">
-                <div class="flex">
-                  <NodeInfo node={path.start} />
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <NodeInfo node={path.end} />
-                </div>
-                <div>
-                  <span
-                    >{formatDistance(
-                      path.distance * MAP_TO_REAL_LIFE_RATIO
-                    )}</span
-                  >
-                  <span class={isShowingAll ? "cursor-not-allowed" : ""}
-                    ><button
-                      class={`btn btn-xs btn-outline border-dashed border-2 ${
-                        selectedPath !== path ? "btn-primary" : "btn-error"
-                      } ${
-                        isShowingAll || (selectedPath !== path && selectedPath)
-                          ? "btn-disabled"
-                          : ""
-                      }`}
-                      on:click={() => {
-                        if (!isShowingAll) {
-                          if (selectedPath !== path) {
-                            selectPath(path);
-                          } else {
-                            deselectPath();
-                          }
-                        }
-                      }}
+        <div
+          class="max-h-32 overflow-y-auto space-y-1 space-y-reverse flex flex-col-reverse"
+        >
+          {#if $algorithmResult.paths.length > 1}
+            {#each $algorithmResult.paths as path (path.start.id + path.end.id)}
+              <div class="p-2 border-2 border-dashed hover:bg-base-300">
+                <div class="flex justify-between">
+                  <div class="flex">
+                    <NodeInfo node={path.start} />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
                     >
-                      {#if selectedPath !== path}
-                        <p>Show</p>
-                      {:else}
-                        <p>Stop</p>
-                      {/if}
-                    </button></span
-                  >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    <NodeInfo node={path.end} />
+                  </div>
+                  <div>
+                    <span
+                      >{formatDistance(
+                        path.distance * MAP_TO_REAL_LIFE_RATIO
+                      )}</span
+                    >
+                    <span
+                      ><button
+                        class={`btn btn-xs btn-outline border-dashed border-2 ${
+                          currentRenderer === path ? "btn-error" : "btn-primary"
+                        } `}
+                        on:click={() => {
+                          if (currentRenderer !== path) {
+                            startRenderer(path);
+                          } else {
+                            stopRenderer();
+                          }
+                        }}
+                      >
+                        {#if currentRenderer === path}
+                          <p>Stop</p>
+                        {:else}
+                          <p>Show</p>
+                        {/if}
+                      </button></span
+                    >
+                  </div>
                 </div>
               </div>
-            </div>
-          {/each}
-        {/if}
-      </div>
+            {/each}
+          {/if}
+        </div>
+      {/if}
       <input
         type="range"
         min={speedRange.min}

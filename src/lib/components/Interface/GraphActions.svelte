@@ -6,7 +6,7 @@
     areas,
     graph,
     algorithm,
-    paths,
+    algorithmResult,
   } from "../../store/store";
   import graphSmall from "../../data/graph_small.json";
   import graphBig from "../../data/graph.json";
