@@ -15,3 +15,10 @@ export type Control = {
     isDragging: boolean;
   };
 };
+
+export type Renderer = {
+  renderer: IterableIterator<void>;
+  resetRenderer: () => IterableIterator<void>;
+  render: (resetGraphVisual: boolean) => void;
+  resetGraphVisual: () => void;
+};

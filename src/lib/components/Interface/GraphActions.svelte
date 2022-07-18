@@ -1,16 +1,8 @@
 <script lang="ts">
   import { downloadJson } from "../../functions/utility";
-  import {
-    locations,
-    networkGraph,
-    areas,
-    graph,
-    algorithm,
-    algorithmResult,
-  } from "../../store/store";
+  import { networkGraph, areas, graph } from "../../store/store";
   import graphSmall from "../../data/graph_small.json";
   import graphBig from "../../data/graph.json";
-  $: $networkGraph.setGraph($graph);
 </script>
 
 <div class="card card-compact bg-base-100 shadow-xl">

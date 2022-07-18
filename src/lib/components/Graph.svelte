@@ -13,8 +13,8 @@
     areas,
   } from "../store/store";
   import { onDestroy } from "svelte";
-  import labels from "../data/labels.json";
-  import PolygonElement from "../functions/elements/Polygon/PolygonElement";
+
+  $: $networkGraph.setGraph($graph);
 
   let mapContainer: HTMLDivElement | undefined;
 
@@ -32,12 +32,14 @@
         const color = makeColor($locations.length);
 
         locations.update((locations) => {
-          let name: string;
+          let name: string = element.state.label;
           let tryCount = 0;
 
-          do {
-            name = makeAlphabetID(tryCount++);
-          } while (locations.find((location) => location.name === name));
+          if (!name) {
+            do {
+              name = makeAlphabetID(tryCount++);
+            } while (locations.find((location) => location.name === name));
+          }
 
           return [{ node: element, name, color }, ...locations];
         });
@@ -64,22 +66,22 @@
 
   $: {
     $graph;
-    areas.set(
-      labels.map(({ points, label, color }) => {
-        const polygon = $networkGraph.newElement(PolygonElement, {
-          label,
-          fill: color,
-        });
-        for (const point of points) {
-          polygon.addPoint(point.x, point.y);
-        }
-        return {
-          polygon,
-          label,
-          color,
-        };
-      })
-    );
+    // areas.set(
+    //   labels.map(({ points, label, color }) => {
+    //     const polygon = $networkGraph.newElement(PolygonElement, {
+    //       label,
+    //       fill: color,
+    //     });
+    //     for (const point of points) {
+    //       polygon.addPoint(point.x, point.y);
+    //     }
+    //     return {
+    //       polygon,
+    //       label,
+    //       color,
+    //     };
+    //   })
+    // );
   }
   let destroyed = false;
 

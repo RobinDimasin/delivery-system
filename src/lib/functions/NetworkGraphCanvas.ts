@@ -6,6 +6,7 @@ type Node = {
   id: string;
   x: number;
   y: number;
+  label?: string;
 };
 
 type Edge = {
@@ -79,6 +80,7 @@ export default class NetworkGraphCanvas extends Canvas {
         id: node.id,
         x: node.x,
         y: node.y,
+        label: node.label,
         radius: 2,
         fill: "black",
         draggable: true,

@@ -4,12 +4,13 @@
     locations,
     networkGraph,
     algorithm,
-    algorithmResult,
+    algorithmResults,
     isComputingPath as isAlgorithmComputing,
   } from "../../store/store";
   import type { Location } from "../../store/store";
   import NodeInfo from "./NodeInfo.svelte";
-  import { delay } from "../../functions/utility";
+  import DFS from "../../functions/algorithm/types/DFS";
+  import Dijkstra from "../../functions/algorithm/types/Dijkstra";
 
   const onLocationHoverIn = (location: Location) => {
     location.node.state.hovering = true;
@@ -42,6 +43,21 @@
       scrollLocationsContainerDown();
     }
   });
+
+  const algorithms = [
+    {
+      name: "Dijkstra",
+      algorithm: Dijkstra,
+      key: "dijkstra",
+    },
+    {
+      name: "Depth-First Search",
+      algorithm: DFS,
+      key: "dfs",
+    },
+  ] as const;
+
+  algorithm.set(algorithms[0].algorithm);
 </script>
 
 <div class="card card-compact bg-base-100 shadow-xl">
@@ -130,40 +146,52 @@
     </div>
 
     {#if $locations.length > 0}
+      <hr />
       {#if $locations.length >= 2}
-        <button
-          class="btn btn-primary btn-sm"
-          on:click={async () => {
-            const algo = new $algorithm({
-              nodes: $networkGraph.nodes,
-              edges: $networkGraph.edges,
-            });
+        <div class="flex justify-between space-x-1">
+          <div>
+            <select
+              class="select select-primary select-sm"
+              on:change={(e) => {
+                // @ts-ignore
+                const value = e.target.value;
+                const { algorithm: algo } = algorithms.find(
+                  (algorithm) => algorithm.key === value
+                );
 
-            isAlgorithmComputing.set(true);
+                algorithm.set(algo);
+              }}
+            >
+              {#each algorithms as algorithm (algorithm.key)}
+                <option value={algorithm.key}>{algorithm.name}</option>
+              {/each}
+            </select>
+          </div>
+          <button
+            class="btn btn-primary btn-sm grow"
+            on:click={async () => {
+              const algo = new $algorithm({
+                nodes: $networkGraph.nodes,
+                edges: $networkGraph.edges,
+              });
 
-            algorithmResult.set(
-              algo.compute(
-                [...$locations].reverse().map((location) => location.node)
-              )
-            );
+              isAlgorithmComputing.set(true);
 
-            isAlgorithmComputing.set(false);
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
+              algorithmResults.update((algorithmResults) => {
+                return [
+                  algo.compute(
+                    [...$locations].reverse().map((location) => location.node)
+                  ),
+                  ...algorithmResults,
+                ];
+              });
+
+              isAlgorithmComputing.set(false);
+            }}
           >
-            <path
-              fill-rule="evenodd"
-              d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <p>Calculate Route</p>
-        </button>
+            Calculate Route
+          </button>
+        </div>
       {:else}
         <button
           class="btn btn-primary btn-sm btn-disabled"

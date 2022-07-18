@@ -179,11 +179,11 @@ export const round = (value: number, decimal = 2) => {
 
 export const formatDistance = (distance: number) => {
   const formats = [
-    [1000, (dist: number) => round(dist / 1000, 2) + "km"],
     [100000, (dist: number) => round(dist / 1000, 1) + "km"],
+    [1000, (dist: number) => round(dist / 1000, 2) + "km"],
   ] as const;
 
-  const format = formats.find((f) => f[0] > distance);
+  const format = formats.find((f) => distance >= f[0]);
 
   if (format) {
     return format[1](distance);
@@ -191,3 +191,27 @@ export const formatDistance = (distance: number) => {
     return round(distance, 2) + "m";
   }
 };
+
+export function shuffle(array: any[]) {
+  let currentIndex = array.length;
+  let randomIndex: number;
+
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+
+  return array;
+}
+
+export function capitalize(text: string) {
+  return text.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
+}

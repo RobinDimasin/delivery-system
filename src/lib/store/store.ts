@@ -6,6 +6,8 @@ import type NodeElement from "../functions/elements/Node/NodeElement";
 import type PolygonElement from "../functions/elements/Polygon/PolygonElement";
 import NetworkGraphCanvas from "../functions/NetworkGraphCanvas";
 import graphSmall from "../data/graph_small.json";
+import graphBig from "../data/graph.json";
+import DFS from "../functions/algorithm/types/DFS";
 
 export type Location = {
   node: NodeElement;
@@ -35,13 +37,12 @@ export type Graph = {
   edges: Edge[];
 };
 
-export const graph = writable<Graph>(graphSmall);
+export const graph = writable<Graph>(graphBig);
 export const networkGraph = writable(new NetworkGraphCanvas({}));
-export const algorithm =
-  writable<new (graph: GraphRawInput) => Algorithm>(Dijkstra);
-export const algorithmResult = writable<
-  ReturnType<Algorithm["compute"]> | undefined
->();
+export const algorithm = writable<new (graph: GraphRawInput) => Algorithm>(DFS);
+export const algorithmResults = writable<ReturnType<Algorithm["compute"]>[]>(
+  []
+);
 export const isComputingPath = writable<boolean | undefined>(undefined);
 
 export const locations = writable<Location[]>([]);
@@ -53,3 +54,4 @@ export const isEditing = writable(false);
 export const isLabellingArea = writable(false);
 export const isMakingArea = writable(false);
 export const editingPolygon = writable<PolygonElement | undefined>();
+export const yieldInterval = writable(100);

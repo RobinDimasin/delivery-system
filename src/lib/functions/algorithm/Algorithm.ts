@@ -1,11 +1,12 @@
 import type EdgeElement from "../elements/Edge/EdgeElement";
 import NodeElement from "../elements/Node/NodeElement";
-import { delay, increaseBrightness } from "../utility";
+import { shuffle } from "../utility";
 import AlgorithmStyles from "./styles";
+import { v4 as uuidv4 } from "uuid";
 
 export enum AlgorithmType {
-  DFS = "dfs",
-  DIJKSTRA = "dijkstra",
+  DFS = "Depth-First search",
+  DIJKSTRA = "Dijkstra",
   ASTAR = "A*",
 }
 
@@ -91,13 +92,20 @@ export default abstract class Algorithm {
         });
       }
     }
+
+    for (const node of this.graph.keys()) {
+      const edges = this.graph.get(node);
+
+      this.graph.set(node, shuffle(edges));
+    }
   }
 
   compute(locations: NodeElement[]) {
     this.emptyActions();
 
+    const startTime = performance.now();
+
     const paths = new Array<Path>();
-    let cnt = 0;
 
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
@@ -161,10 +169,12 @@ export default abstract class Algorithm {
       });
     }
 
-    const proccessGeneraator = () => this.startGenerator(locations);
+    const endTime = performance.now();
+
+    const processGenerator = () => this.startGenerator(locations);
 
     function* newProcessRenderer() {
-      const gen = proccessGeneraator();
+      const gen = processGenerator();
 
       while (!gen.next().done) {
         for (let i = 0; i < 10; i++) {
@@ -184,7 +194,11 @@ export default abstract class Algorithm {
       }
     }
 
+    this.resetGraphVisual();
+
     return {
+      id: uuidv4(),
+      algorithmUsed: this.#type,
       process: {
         renderer: newProcessRenderer(),
         resetRenderer: function () {
@@ -212,6 +226,8 @@ export default abstract class Algorithm {
         resetGraphVisual: () => this.resetGraphVisual(),
       },
       paths: [...paths].reverse(),
+      computingTime: endTime - startTime,
+      resetGraphVisual: () => this.resetGraphVisual(),
     };
   }
 

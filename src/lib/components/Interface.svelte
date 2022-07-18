@@ -8,14 +8,14 @@
 </script>
 
 <div
-  class="absolute top-0 left-0 w-48 md:w-96 min-h-screen bg-base-100 p-8 space-y-2 shadow-2xl overflow-auto max-h-screen"
+  class="absolute top-0 left-0 w-48 md:w-[30rem] min-h-screen bg-base-100 p-8 space-y-2 shadow-2xl overflow-auto max-h-screen"
 >
   <Title />
   <Locations />
   <Paths />
-  <GraphActions />
-  <Areas />
-  <Config />
+  <!-- <GraphActions /> -->
+  <!-- <Areas /> -->
+  <!-- <Config /> -->
 
   <slot />
 </div>
