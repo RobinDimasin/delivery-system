@@ -70,8 +70,11 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
     }
 
     if ((this.hovering || this.selected) && this.state.label) {
-      p5.stroke("yellow");
-      p5.text(this.state.label, this.x, this.y);
+      p5.stroke("black");
+      p5.fill("black");
+      p5.textSize(16 / view.zoom);
+      p5.textAlign(p5.CENTER);
+      p5.text(this.state.label, this.x, this.y - 10 / view.zoom);
     }
   }
 

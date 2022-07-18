@@ -3,6 +3,7 @@ import type { Sketch } from "p5-svelte";
 import EdgeElement from "./elements/Edge/EdgeElement";
 import type Element from "./elements/Element";
 import NodeElement from "./elements/Node/NodeElement";
+import PolygonElement from "./elements/Polygon/PolygonElement";
 import EventEmitter from "./EventEmitter";
 import type { Control, Position } from "./types";
 

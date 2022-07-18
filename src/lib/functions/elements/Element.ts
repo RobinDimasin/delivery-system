@@ -86,7 +86,7 @@ export default abstract class Element<
       hidden: false,
       scaleWithZoom: this.#config.scaleWithZoom ?? false,
       alwaysShow: false,
-      label: this.#config.label ?? this.id.slice(0, 4),
+      label: this.#config.label ?? undefined,
       ...state,
     } as Required<State & ElementState>;
   }
