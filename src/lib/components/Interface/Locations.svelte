@@ -11,6 +11,7 @@
   import NodeInfo from "./NodeInfo.svelte";
   import DFS from "../../functions/algorithm/types/DFS";
   import Dijkstra from "../../functions/algorithm/types/Dijkstra";
+  import AStar from "../../functions/algorithm/types/AStar";
 
   const onLocationHoverIn = (location: Location) => {
     location.node.state.hovering = true;
@@ -49,6 +50,11 @@
       name: "Dijkstra",
       algorithm: Dijkstra,
       key: "dijkstra",
+    },
+    {
+      name: "A*",
+      algorithm: AStar,
+      key: "a*",
     },
     {
       name: "Depth-First Search",

@@ -1,6 +1,6 @@
 import { MinPriorityQueue } from "@datastructures-js/priority-queue";
 import { current_component } from "svelte/internal";
-import NodeElement from "../../elements/Node/NodeElement";
+import type NodeElement from "../../elements/Node/NodeElement";
 import { increaseBrightness } from "../../utility";
 import Algorithm, {
   AlgorithmAction,
@@ -19,19 +19,20 @@ export default class AStar extends Algorithm {
     const actions = new Array<AlgorithmAction>();
 
     const visited = new Set<NodeElement>();
-  
+
     const frontier = new MinPriorityQueue<{ fcost: number; node: NodeElement }>(
       ({ fcost }) => fcost
     );
+
     frontier.push({ fcost: 0, node: start });
     const came_from = new Map<NodeElement, NodeElement>();
     came_from.set(start, null);
     const cost_so_far = new Map<NodeElement, number>();
     cost_so_far.set(start, 0);
-    
+
     const heuristic = (node: NodeElement, node1: NodeElement) => {
-      return Math.hypot(node.x - node1.x, node.y - node1.y)
-    }
+      return Math.hypot(node.x - node1.x, node.y - node1.y);
+    };
 
     actions.push(
       this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start)
@@ -39,60 +40,153 @@ export default class AStar extends Algorithm {
 
     actions.push(this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end));
 
-      while(!frontier.isEmpty()){
-        const currNode = frontier.pop().node;
+    while (!frontier.isEmpty()) {
+      const currNode = frontier.pop().node;
 
-        if(currNode === end){
-          break;
+      if (currNode === end) {
+        break;
+      }
+
+      if (visited.has(currNode)) {
+        continue;
+      }
+
+      if (!(currNode === start || currNode === end)) {
+        actions.push(
+          this.makeAction(AlgorithmActionType.START_PROCESSING_NODE, currNode)
+        );
+      }
+
+      visited.add(currNode);
+
+      actions.push(this.showCurrentPath(start, currNode));
+
+      for (const edge of this.graph.get(currNode)) {
+        const neighbor = edge.to;
+
+        if (visited.has(neighbor)) {
+          continue;
         }
 
-        if (visited.has(currNode)) {
-          continue;
+        actions.push(
+          this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor)
+        );
+
+        const newCost =
+          cost_so_far.get(currNode) + heuristic(currNode, neighbor);
+        if (!cost_so_far.has(neighbor) || newCost < cost_so_far.get(neighbor)) {
+          cost_so_far.set(neighbor, newCost);
+          const priority = newCost + heuristic(end, neighbor);
+          frontier.push({ fcost: priority, node: neighbor });
+          came_from.set(neighbor, currNode);
         }
 
         if (!(currNode === start || currNode === end)) {
           actions.push(
-            this.makeAction(AlgorithmActionType.START_PROCESSING_NODE, currNode)
+            this.makeAction(AlgorithmActionType.NODE_PROCESSED, currNode)
           );
         }
-
-        visited.add(currNode);
-
-        actions.push(this.showCurrentPath(start, currNode));
-
-        for (const edge of this.graph.get(currNode)) {
-          const neighbor = edge.to;
-
-          if (visited.has(neighbor)) {
-            continue;
-          }
-  
-          actions.push(
-            this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor)
-          );
-
-          const newCost = cost_so_far.get(currNode) + heuristic(currNode, neighbor) ; 
-          if(!cost_so_far.has(neighbor) || newCost < cost_so_far.get(neighbor)){
-            cost_so_far.set(neighbor, newCost);
-            const priority = newCost + heuristic(end, neighbor);
-            frontier.push({ fcost: priority, node: neighbor });
-            came_from.set(neighbor, currNode);
-          }
-
-          if (!(currNode === start || currNode === end)) {
-            actions.push(
-              this.makeAction(AlgorithmActionType.NODE_PROCESSED, currNode)
-            );
-          }
       }
+    }
 
     return actions;
   }
 
-  processGenerator(
+  *processGenerator(
     start: NodeElement,
-    end: NodeElement
-  ): IterableIterator<any> {
-    throw new Error("Method not implemented.");
+    end: NodeElement,
+    skipActions?: boolean
+  ) {
+    const actions = new Array<AlgorithmAction>();
+
+    const visited = new Set<NodeElement>();
+
+    const frontier = new MinPriorityQueue<{ fcost: number; node: NodeElement }>(
+      ({ fcost }) => fcost
+    );
+
+    frontier.push({ fcost: 0, node: start });
+    const came_from = new Map<NodeElement, NodeElement>();
+    came_from.set(start, null);
+    const cost_so_far = new Map<NodeElement, number>();
+    cost_so_far.set(start, 0);
+
+    const heuristic = (node: NodeElement, node1: NodeElement) => {
+      return Math.hypot(node.x - node1.x, node.y - node1.y);
+    };
+
+    if (!skipActions) {
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, start).perform();
+
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
+      yield;
+    }
+
+    while (!frontier.isEmpty()) {
+      const currNode = frontier.pop().node;
+
+      if (currNode === end) {
+        if (!skipActions) {
+          const buildPathActions = this.buildPath(start, currNode);
+
+          for (const action of buildPathActions) {
+            action.perform();
+            yield;
+          }
+        }
+        break;
+      }
+
+      if (visited.has(currNode)) {
+        continue;
+      }
+
+      if (!skipActions) {
+        if (!(currNode === start || currNode === end)) {
+          this.makeAction(
+            AlgorithmActionType.START_PROCESSING_NODE,
+            currNode
+          ).perform();
+        }
+      }
+
+      visited.add(currNode);
+
+      for (const edge of this.graph.get(currNode)) {
+        const neighbor = edge.to;
+
+        if (visited.has(neighbor)) {
+          continue;
+        }
+
+        if (!skipActions) {
+          this.makeAction(AlgorithmActionType.ENQUEUE_NODE, neighbor).perform();
+          yield;
+        }
+
+        const newCost =
+          cost_so_far.get(currNode) + heuristic(currNode, neighbor);
+        if (!cost_so_far.has(neighbor) || newCost < cost_so_far.get(neighbor)) {
+          cost_so_far.set(neighbor, newCost);
+          const priority = newCost + heuristic(end, neighbor);
+          frontier.push({ fcost: priority, node: neighbor });
+          this.parentMap.set(neighbor, currNode);
+          came_from.set(neighbor, currNode);
+        }
+      }
+
+      if (!skipActions) {
+        this.showCurrentPath(start, currNode).perform();
+        if (!(currNode === start || currNode === end)) {
+          this.makeAction(
+            AlgorithmActionType.NODE_PROCESSED,
+            currNode
+          ).perform();
+        }
+        yield;
+      }
+    }
+
+    return actions;
   }
 }
