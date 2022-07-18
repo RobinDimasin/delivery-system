@@ -79,7 +79,7 @@ export default class DFS extends Algorithm {
     return actions;
   }
 
-  *processGenerator(start: NodeElement, end: NodeElement) {
+  *processGenerator(start: NodeElement, end: NodeElement, skipActions = false) {
     const visited = new Set<NodeElement>();
 
     const stack = [start];
@@ -87,27 +87,31 @@ export default class DFS extends Algorithm {
     // Functions to call when playing the visualization; change color, size, etc...
     const actions = new Array<AlgorithmAction>();
 
-    // Make starting node color red
-    this.makeAction(
-      AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
-      start,
-      false
-    ).perform();
+    if (!skipActions) {
+      // Make starting node color red
+      this.makeAction(
+        AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+        start,
+        false
+      ).perform();
 
-    // Make ending node color red
-    this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
-    yield;
+      // Make ending node color red
+      this.makeAction(AlgorithmActionType.HIGHLIGHT_ENDPOINTS, end).perform();
+      yield;
+    }
 
     while (stack.length > 0) {
       const node = stack.pop();
 
       // Backtrack the path from the end node to the start node, if the end node is reached
       if (node === end) {
-        const buildPathActions = this.buildPath(start, node);
+        if (!skipActions) {
+          const buildPathActions = this.buildPath(start, node);
 
-        for (const action of buildPathActions) {
-          action.perform();
-          yield;
+          for (const action of buildPathActions) {
+            action.perform();
+            yield;
+          }
         }
         break;
       }
@@ -117,13 +121,15 @@ export default class DFS extends Algorithm {
         continue;
       }
 
-      // Make currently processing node color cyan
-      if (!(node === start || node === end)) {
-        this.makeAction(
-          AlgorithmActionType.START_PROCESSING_NODE,
-          node
-        ).perform();
-        yield;
+      if (!skipActions) {
+        // Make currently processing node color cyan
+        if (!(node === start || node === end)) {
+          this.makeAction(
+            AlgorithmActionType.START_PROCESSING_NODE,
+            node
+          ).perform();
+          yield;
+        }
       }
 
       // Add node to visited
@@ -139,9 +145,14 @@ export default class DFS extends Algorithm {
         if (!visited.has(child)) {
           this.parentMap.set(child, node);
 
-          // Make the neighboring node color gray, indicating it is in the stack
-          if (!(node === start || node === end)) {
-            this.makeAction(AlgorithmActionType.ENQUEUE_NODE, child).perform();
+          if (!skipActions) {
+            // Make the neighboring node color gray, indicating it is in the stack
+            if (!(node === start || node === end)) {
+              this.makeAction(
+                AlgorithmActionType.ENQUEUE_NODE,
+                child
+              ).perform();
+            }
           }
           stack.push(child);
           yield;
@@ -154,12 +165,14 @@ export default class DFS extends Algorithm {
         yield;
       }
 
-      this.showCurrentPath(start, node).perform();
+      if (!skipActions) {
+        this.showCurrentPath(start, node).perform();
 
-      // Make newly processed node color lime
-      if (!(node === start || node === end)) {
-        this.makeAction(AlgorithmActionType.NODE_PROCESSED, node).perform();
-        yield;
+        // Make newly processed node color lime
+        if (!(node === start || node === end)) {
+          this.makeAction(AlgorithmActionType.NODE_PROCESSED, node).perform();
+          yield;
+        }
       }
     }
   }

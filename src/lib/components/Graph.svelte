@@ -1,199 +1,113 @@
 <script lang="ts">
   import P5 from "p5-svelte";
-  import DFS from "../functions/algorithm/types/DFS";
-  import {
-    delay,
-    downloadJson,
-    makeAlphabetID,
-    makeColor,
-  } from "../functions/utility";
-  import graphBig from "../data/graph.json";
-  import graphSmall from "../data/graph_small.json";
-  import NetworkGraphCanvas from "../functions/NetworkGraphCanvas";
+  import { makeAlphabetID, makeColor } from "../functions/utility";
   import NodeElement from "../functions/elements/Node/NodeElement";
-  import type { AlgorithmAction } from "../functions/algorithm/Algorithm";
-  import Dijkstra from "../functions/algorithm/types/Dijkstra";
-  import Interface from "./Interface.svelte";
-  import { createEventDispatcher } from "svelte";
-  import { isSelectingLocation, locations } from "../store/store";
+  import {
+    isEditing,
+    isSelectingLocation,
+    isMakingArea,
+    editingPolygon,
+    locations,
+    networkGraph,
+    graph,
+    areas,
+  } from "../store/store";
+  import { onDestroy } from "svelte";
 
-  const dispatch = createEventDispatcher();
+  $: $networkGraph.setGraph($graph);
 
-  let width = 900;
-  let height = 600;
+  let mapContainer: HTMLDivElement | undefined;
 
-  let graph = graphSmall;
-
-  const networkGraph = NetworkGraphCanvas.fromJSON(graph, {
-    width,
-    height,
+  isEditing.subscribe((editing) => {
+    $networkGraph.setConfig("editable", editing);
   });
 
-  networkGraph.on("selectElement", ({ element }) => {
-    if (element instanceof NodeElement && $isSelectingLocation) {
-      const color = makeColor($locations.length);
+  $networkGraph.on("selectElement", ({ element }) => {
+    if (element instanceof NodeElement) {
+      if ($isSelectingLocation) {
+        if ($locations.find(({ node }) => node === element)) {
+          return;
+        }
 
-      locations.update((locations) => {
-        let name: string;
-        let tryCount = 0;
+        const color = makeColor($locations.length);
 
-        do {
-          name = makeAlphabetID(tryCount++);
-        } while (locations.find((location) => location.name === name));
+        locations.update((locations) => {
+          let name: string = element.state.label;
+          let tryCount = 0;
 
-        return [...locations, { node: element, name, color }];
-      });
+          if (!name) {
+            do {
+              name = makeAlphabetID(tryCount++);
+            } while (locations.find((location) => location.name === name));
+          }
 
-      networkGraph.deselectElement();
+          return [{ node: element, name, color }, ...locations];
+        });
 
-      element.state.endpoint = true;
-      element.state.fill = color;
-      element.config.fill = color;
-      isSelectingLocation.set(false);
+        $networkGraph.deselectElement();
+
+        element.state.endpoint = true;
+        element.state.fill = color;
+        element.config.fill = color;
+        isSelectingLocation.set(false);
+      }
     }
   });
 
-  let startNode: NodeElement | undefined,
-    middleNode: NodeElement | undefined,
-    endNode: NodeElement | undefined;
-  let algorithm: Dijkstra | undefined;
+  $networkGraph.on("canvasClick", ({ x, y }) => {
+    if (!$isMakingArea || !$editingPolygon) {
+      return;
+    }
 
-  let actionIndex = 0;
-  // const actions = dfs.start([startNode, middleNode, endNode]);
-  let actions: AlgorithmAction[] | undefined;
+    $networkGraph.addElement($editingPolygon);
 
-  let gen: IterableIterator<any> | undefined;
+    $editingPolygon.addPoint(x, y);
+  });
 
   $: {
-    networkGraph.setGraph(graph);
-
-    // startNode = networkGraph.nodes.find(
-    //   (element) => element.id === "6e968a25-76b3-4093-9352-de4f3566116d"
-    // ) as NodeElement;
-    // middleNode = networkGraph.nodes.find(
-    //   (element) => element.id === "1d4137b8-74cb-4d89-8905-59959cbb53d1"
-    // ) as NodeElement;
-    // endNode = networkGraph.nodes.find(
-    //   (element) => element.id === "5a176ab9-3ba6-4136-b769-a1e472040794"
-    // ) as NodeElement;
-
-    algorithm = new Dijkstra({
-      nodes: networkGraph.nodes,
-      edges: networkGraph.edges,
-    });
+    $graph;
+    // areas.set(
+    //   labels.map(({ points, label, color }) => {
+    //     const polygon = $networkGraph.newElement(PolygonElement, {
+    //       label,
+    //       fill: color,
+    //     });
+    //     for (const point of points) {
+    //       polygon.addPoint(point.x, point.y);
+    //     }
+    //     return {
+    //       polygon,
+    //       label,
+    //       color,
+    //     };
+    //   })
+    // );
   }
+  let destroyed = false;
 
-  const previous = () => {
-    if (actionIndex >= 0) {
-      actions[actionIndex].undo();
-      actionIndex--;
-    }
-
-    return actionIndex >= 0;
-  };
-
-  const next = () => {
-    if (actionIndex < actions.length) {
-      actions[actionIndex].perform();
-      actionIndex++;
-    }
-
-    return actionIndex < actions.length;
-  };
-
-  let interval;
-
-  let yieldInterval = 1;
-
-  const start = () => {
-    clearInterval(interval);
-
-    const started = new Date().getTime();
-    let processed = 0;
-
-    interval = setInterval(() => {
-      const now = new Date().getTime();
-      const expected = Math.floor((now - started) / yieldInterval);
-
-      const need = expected - processed;
-
-      for (let i = 0; i < need; i++) {
-        gen.next();
-        // next();
-        processed++;
+  onDestroy(() => {
+    if (mapContainer) {
+      const parent = mapContainer.parentElement;
+      if (parent) {
+        parent.removeChild(mapContainer);
       }
-    }, 5);
-  };
-
-  const stop = () => {
-    clearInterval(interval);
-  };
+    }
+    destroyed = true;
+  });
 </script>
 
-<div class="overflow-hidden">
-  <P5 sketch={networkGraph.setup} />
+<div class="overflow-hidden" bind:this={mapContainer}>
+  <P5 sketch={$networkGraph.setup} />
 </div>
 
-<Interface
-  onLocationHoverIn={({ node }) => {
-    node.state.hovering = true;
-    node.state.radius *= 2;
-  }}
-  onLocationHoverOut={({ node }) => {
-    node.state.hovering = false;
-    node.state.radius = node.config.radius;
-  }}
-  onLocationClick={({ node }) => {
-    networkGraph.handleElementClick(node);
-  }}
->
-  <button
-    class="btn btn-primary"
-    on:click={() => downloadJson(networkGraph.toJSON())}
-  >
-    Download Graph
-  </button>
-
-  <button
-    class="btn btn-primary"
-    on:click={() => {
-      graph = graphSmall;
-    }}
-  >
-    Load Small Graph
-  </button>
-
-  <button
-    class="btn btn-primary"
-    on:click={() => {
-      graph = graphBig;
-    }}
-  >
-    Load Big Graph
-  </button>
-
-  {#if actions || gen}
-    <!-- <button class="btn btn-primary" on:click={previous}>Previous</button>
-
-    <button class="btn btn-primary" on:click={next}>Next</button> -->
-    <button class="btn btn-primary" on:click={start}>Start Visualization</button
-    >
-    <!-- <button class="btn btn-primary" on:click={stop}>Stop</button> -->
-  {:else}
-    <button
-      class="btn btn-primary"
-      on:click={() => {
-        // actions = algorithm.start($locations.map((location) => location.node));
-        // actionIndex = 0;
-        gen = algorithm.startGenerator(
-          $locations.map((location) => location.node)
-        );
-      }}
-    >
-      Compute Path
-    </button>
-  {/if}
-</Interface>
+{#if destroyed}
+  <div class="flex h-screen">
+    <div class="m-auto text-center">
+      <p class="text-xl font-bold">Map failed to load</p>
+      <p>Please reload the page</p>
+    </div>
+  </div>
+{/if}
 
 <style>
   :global(body) {

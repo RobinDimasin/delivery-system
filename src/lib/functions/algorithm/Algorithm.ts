@@ -1,11 +1,12 @@
 import type EdgeElement from "../elements/Edge/EdgeElement";
 import NodeElement from "../elements/Node/NodeElement";
-import { increaseBrightness } from "../utility";
+import { shuffle } from "../utility";
 import AlgorithmStyles from "./styles";
+import { v4 as uuidv4 } from "uuid";
 
 export enum AlgorithmType {
-  DFS = "dfs",
-  DIJKSTRA = "dijkstra",
+  DFS = "Depth-First search",
+  DIJKSTRA = "Dijkstra",
   ASTAR = "A*",
 }
 
@@ -34,6 +35,8 @@ export enum AlgorithmActionType {
   SHOW_EDGE_DIRECTION = "SHOW_EDGE_DIRECTION",
   NODE_DEFAULT = "NODE_DEFAULT",
   EDGE_DEFAULT = "EDGE_DEFAULT",
+  NODE_STATELESS = "NODE_STATELESS",
+  EDGE_STATELESS = "EDGE_STATELESS",
 }
 
 export type AlgorithmAction = {
@@ -41,6 +44,24 @@ export type AlgorithmAction = {
   perform: (...args: any) => void;
   undo: () => void;
   skip?: boolean;
+};
+
+type PathSegment = {
+  from?: NodeElement;
+  to?: NodeElement;
+  edge?: EdgeElement;
+  weight: number;
+};
+
+export type Path = {
+  start: NodeElement;
+  end: NodeElement;
+  segments: PathSegment[];
+  renderer: IterableIterator<void>;
+  distance: number;
+  resetRenderer: () => IterableIterator<void>;
+  render: (resetGraphVisual: boolean) => void;
+  resetGraphVisual: () => void;
 };
 
 export default abstract class Algorithm {
@@ -59,23 +80,248 @@ export default abstract class Algorithm {
 
     this.graph = new Map();
 
-    for (const node of graph.nodes) {
-      const edges = graph.edges
-        .filter(
-          (edge) => edge.source.id === node.id || edge.target.id === node.id
-        )
-        .map((edge) => {
-          return {
-            to: edge.source === node ? edge.target : edge.source,
-            element: edge,
-          };
+    for (const edge of graph.edges) {
+      const { source, target } = edge;
+      for (const node of [source, target]) {
+        if (!this.graph.has(node)) {
+          this.graph.set(node, new Array());
+        }
+        this.graph.get(node).push({
+          to: node === source ? target : source,
+          element: edge,
         });
+      }
+    }
 
-      this.graph.set(node, edges);
+    for (const node of this.graph.keys()) {
+      const edges = this.graph.get(node);
+
+      this.graph.set(node, shuffle(edges));
     }
   }
 
+  compute(locations: NodeElement[]) {
+    this.emptyActions();
+
+    const startTime = performance.now();
+
+    const paths = new Array<Path>();
+
+    for (let i = 0; i < locations.length - 1; i++) {
+      this.parentMap.clear();
+      const start = locations[i];
+      const end = locations[i + 1];
+      const gen = this.processGenerator(start, end, true);
+
+      while (!gen.next().done);
+
+      const segments = new Array<PathSegment>();
+
+      if (this.parentMap.has(locations[i + 1])) {
+        let child = locations[i + 1];
+        segments.push({
+          to: child,
+          weight: 0,
+        });
+
+        while (this.parentMap.has(child)) {
+          const parent = this.parentMap.get(child);
+
+          const edge = this.graph
+            .get(parent)
+            .find(
+              (edge) =>
+                edge.element.source === child || edge.element.target === child
+            );
+
+          segments.push({
+            from: parent,
+            to: child,
+            edge: edge.element,
+            weight: Math.hypot(parent.x - child.x, parent.y - child.y),
+          });
+
+          child = parent;
+        }
+      }
+
+      segments.reverse();
+
+      const newPathRenderer = () => this.pathRenderer(segments, true);
+
+      paths.push({
+        start,
+        end,
+        segments: segments,
+        renderer: newPathRenderer(),
+        resetRenderer: function () {
+          this.renderer = newPathRenderer();
+
+          return this.renderer;
+        },
+        distance: segments.reduce(
+          (distance, segment) => distance + segment.weight,
+          0
+        ),
+        render: (resetGraphVisual = true) =>
+          this.renderPath(segments, resetGraphVisual),
+        resetGraphVisual: () => this.resetGraphVisual(),
+      });
+    }
+
+    const endTime = performance.now();
+
+    const processGenerator = () => this.startGenerator(locations);
+
+    function* newProcessRenderer() {
+      const gen = processGenerator();
+
+      while (!gen.next().done) {
+        for (let i = 0; i < 10; i++) {
+          gen.next();
+        }
+        yield;
+      }
+    }
+
+    function* newAllPathsRenderer() {
+      for (const path of paths) {
+        const renderer = path.resetRenderer();
+
+        while (!renderer.next().done) {
+          yield;
+        }
+      }
+    }
+
+    this.resetGraphVisual();
+
+    return {
+      id: uuidv4(),
+      algorithmUsed: this.#type,
+      process: {
+        renderer: newProcessRenderer(),
+        resetRenderer: function () {
+          this.renderer = newProcessRenderer();
+
+          return this.renderer;
+        },
+        render: (resetGraphVisual = true) => {
+          this.resetGraphVisual();
+          paths.forEach((path) => path.render(false));
+        },
+        resetGraphVisual: () => this.resetGraphVisual(),
+      },
+      allPaths: {
+        renderer: newAllPathsRenderer(),
+        resetRenderer: function () {
+          this.renderer = newAllPathsRenderer();
+
+          return this.renderer;
+        },
+        render: (resetGraphVisual = true) => {
+          this.resetGraphVisual();
+          paths.forEach((path) => path.render(false));
+        },
+        resetGraphVisual: () => this.resetGraphVisual(),
+      },
+      paths: [...paths].reverse(),
+      computingTime: endTime - startTime,
+      resetGraphVisual: () => this.resetGraphVisual(),
+    };
+  }
+
+  *pathRenderer(path: PathSegment[], resetGraphVisual = false) {
+    yield;
+
+    if (resetGraphVisual) {
+      this.resetGraphVisual();
+    }
+
+    if (path.length === 0) {
+      return;
+    }
+
+    const renderEndpoints = () => {
+      const startingNode = path[0].from ?? path[0].to;
+      const endingSegment =
+        path[path.length - 1].to ?? path[path.length - 1].from;
+
+      if (startingNode) {
+        this.makeAction(
+          AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+          startingNode
+        ).perform();
+      }
+
+      if (endingSegment) {
+        this.makeAction(
+          AlgorithmActionType.HIGHLIGHT_ENDPOINTS,
+          endingSegment
+        ).perform();
+      }
+    };
+
+    yield;
+
+    for (let i = 0; i < path.length; i++) {
+      const { from, to, edge } = path[i];
+
+      const startingNode = from ?? to;
+
+      if (startingNode) {
+        this.makeAction(
+          i === 0
+            ? AlgorithmActionType.HIGHLIGHT_ENDPOINTS
+            : AlgorithmActionType.BUILD_PATH_NODE,
+          startingNode
+        ).perform();
+      }
+
+      if (edge) {
+        if (edge.source === from) {
+          edge
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowIn: true,
+            })
+            .perform();
+        } else {
+          edge
+            .makeChangeStateAction(AlgorithmActionType.SHOW_EDGE_DIRECTION, {
+              showArrowOut: true,
+            })
+            .perform();
+        }
+
+        this.makeAction(AlgorithmActionType.BUILD_PATH_EDGE, edge).perform();
+      }
+
+      const endingNode = to ?? from;
+
+      if (endingNode) {
+        this.makeAction(
+          i === path.length - 1
+            ? AlgorithmActionType.HIGHLIGHT_ENDPOINTS
+            : AlgorithmActionType.BUILD_PATH_NODE,
+          endingNode
+        ).perform();
+      }
+
+      renderEndpoints();
+
+      yield;
+    }
+  }
+
+  renderPath(path: PathSegment[], resetGraphVisual = false) {
+    const renderer = this.pathRenderer(path, resetGraphVisual);
+
+    while (!renderer.next().done);
+  }
+
   start(locations: NodeElement[]) {
+    this.emptyActions();
+
     if (locations.length < 2) {
       throw new Error("Not enough locations, must be at least 2");
     }
@@ -125,6 +371,8 @@ export default abstract class Algorithm {
   }
 
   *startGenerator(locations: NodeElement[]) {
+    this.emptyActions();
+
     if (locations.length < 2) {
       throw new Error("Not enough locations, must be at least 2");
     }
@@ -132,6 +380,8 @@ export default abstract class Algorithm {
     locations = locations.filter((location) => location);
 
     const path = new Array<NodeElement>();
+
+    this.resetGraphVisual();
 
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
@@ -223,7 +473,8 @@ export default abstract class Algorithm {
 
   abstract processGenerator(
     start: NodeElement,
-    end: NodeElement
+    end: NodeElement,
+    skipActions?: boolean
   ): IterableIterator<any>;
 
   makeAction(
@@ -258,6 +509,9 @@ export default abstract class Algorithm {
         case AlgorithmActionType.NODE_DEFAULT:
           action = this.#actionNodeDefault(element);
           break;
+        case AlgorithmActionType.NODE_STATELESS:
+          action = this.#actionNodeStateless(element);
+          break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
       }
@@ -271,6 +525,9 @@ export default abstract class Algorithm {
           break;
         case AlgorithmActionType.EDGE_DEFAULT:
           action = this.#actionEdgeDefault(element);
+          break;
+        case AlgorithmActionType.EDGE_STATELESS:
+          action = this.#actionEdgeStateless(element);
           break;
         default:
           throw new Error(`Not Implemented: ${actionType}`);
@@ -466,13 +723,33 @@ export default abstract class Algorithm {
     );
   }
 
+  #actionNodeStateless(node: NodeElement) {
+    return node.makeChangeStateAction(
+      AlgorithmActionType.NODE_STATELESS,
+      AlgorithmStyles.NODE.STATELESS
+    );
+  }
+
+  #actionEdgeStateless(edge: EdgeElement) {
+    return edge.makeChangeStateAction(
+      AlgorithmActionType.EDGE_STATELESS,
+      AlgorithmStyles.EDGE.STATELESS
+    );
+  }
+
   resetGraphVisual() {
     for (const [node, edges] of this.graph.entries()) {
-      this.makeAction(AlgorithmActionType.NODE_DEFAULT, node).perform();
+      this.makeAction(AlgorithmActionType.NODE_STATELESS, node).perform();
 
       for (const { element: edge } of edges) {
-        this.makeAction(AlgorithmActionType.EDGE_DEFAULT, edge).perform();
+        this.makeAction(AlgorithmActionType.EDGE_STATELESS, edge).perform();
       }
+    }
+  }
+
+  emptyActions() {
+    while (this.actions.length > 0) {
+      this.actions.pop();
     }
   }
 }

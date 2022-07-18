@@ -32,16 +32,6 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
   }
 
   render(p5: p5, view: Control["view"]): void {
-    if (
-      this.fill !== AlgorithmStyles.NODE.ENDPOINT.fill &&
-      view.zoom <= 0.85 &&
-      !this.selected &&
-      !this.hovering &&
-      !this.state.endpoint
-    ) {
-      return;
-    }
-
     p5.fill(this.fill);
     p5.stroke("#000");
     p5.strokeWeight(1);
@@ -60,6 +50,10 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       radius *= 1.5;
     }
 
+    if (this.state.endpoint) {
+      radius *= 2;
+    }
+
     if (
       this.state.scaleWithZoom ||
       this.hovering ||
@@ -67,12 +61,20 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       this.state.endpoint
     ) {
       if (this.hovering || this.selected || this.state.endpoint) {
-        p5.circle(this.x, this.y, (radius * 4) / Math.min(1, view.zoom));
+        p5.circle(this.x, this.y, (radius * 2.5) / Math.min(1, view.zoom));
       } else {
         p5.circle(this.x, this.y, (radius * 2) / Math.min(1, view.zoom));
       }
     } else {
       p5.circle(this.x, this.y, radius * 2);
+    }
+
+    if ((this.hovering || this.selected) && this.state.label) {
+      p5.stroke("black");
+      p5.fill("black");
+      p5.textSize(16 / view.zoom);
+      p5.textAlign(p5.CENTER);
+      p5.text(this.state.label, this.x, this.y - 10 / view.zoom);
     }
   }
 
@@ -104,6 +106,16 @@ export default class NodeElement extends Element<NodeConfig, NodeState> {
       x <= width + outset &&
       y >= -outset &&
       y <= height + outset
+    );
+  }
+
+  isHidden(zoom: number) {
+    return (
+      this.fill !== AlgorithmStyles.NODE.ENDPOINT.fill &&
+      zoom <= 0.85 &&
+      !this.selected &&
+      !this.hovering &&
+      !this.state.endpoint
     );
   }
 

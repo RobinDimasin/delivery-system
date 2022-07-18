@@ -3,6 +3,7 @@ import type { Sketch } from "p5-svelte";
 import EdgeElement from "./elements/Edge/EdgeElement";
 import type Element from "./elements/Element";
 import NodeElement from "./elements/Node/NodeElement";
+import PolygonElement from "./elements/Polygon/PolygonElement";
 import EventEmitter from "./EventEmitter";
 import type { Control, Position } from "./types";
 
@@ -11,6 +12,7 @@ export type CanvasConfig = {
   height: number;
   setup: (_p5: p5) => void;
   draw: (_p5: p5) => void;
+  editable: boolean;
 };
 
 export class Canvas extends EventEmitter {
@@ -32,6 +34,7 @@ export class Canvas extends EventEmitter {
     this.#config = {
       width: 600,
       height: 600,
+      editable: false,
       setup: (p5: p5) => {
         this.config.width = p5.windowWidth;
         this.config.height = p5.windowHeight;
@@ -59,6 +62,15 @@ export class Canvas extends EventEmitter {
       p5.image(img, 0, 0);
 
       this.#elementList.forEach((element) => {
+        if (
+          (element.state.hidden ||
+            element.isHidden(this.#controls.view.zoom)) &&
+          !element.state.alwaysShow &&
+          !element.state.hovering
+        ) {
+          return;
+        }
+
         if (
           !element.isInsideScreen(
             this.config.width,
@@ -104,7 +116,9 @@ export class Canvas extends EventEmitter {
         return;
       }
 
-      this.dragElement(p5.mouseX, p5.mouseY);
+      if (this.config.editable) {
+        this.dragElement(p5.mouseX, p5.mouseY);
+      }
 
       if (this.#pressedButton === 1) {
         this.dragScreen(event.clientX, event.clientY);
@@ -321,11 +335,23 @@ export class Canvas extends EventEmitter {
     if (this.#controls.view.zoom + zoom < 0.05) {
       return;
     }
+
     this.emit("zoom", { zoom });
 
     this.#controls.view.x -= wx * this.#config.width * zoom;
     this.#controls.view.y -= wy * this.#config.height * zoom;
     this.#controls.view.zoom += zoom;
+  }
+
+  newElement<T extends Element>(
+    element: new (...args: any[]) => T,
+    ...args: ConstructorParameters<new (...args: any[]) => T>
+  ) {
+    const el = new element(...args);
+
+    this.addElement(el);
+
+    return el;
   }
 
   addElement(...elements: Element[]) {
@@ -347,10 +373,15 @@ export class Canvas extends EventEmitter {
       }
 
       this.elements.delete(element.id);
+      element.onDelete();
       this.#elementList = Array.from(this.elements.values()).sort(
         (a, b) => a.state.z - b.state.z
       );
     }
+  }
+
+  setConfig<T extends keyof CanvasConfig>(config: T, value: CanvasConfig[T]) {
+    this.config[config] = value;
   }
 
   get elements() {

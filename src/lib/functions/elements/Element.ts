@@ -4,6 +4,7 @@ import type p5 from "p5";
 import type { Control } from "../types";
 import type { AlgorithmActionType } from "../algorithm/Algorithm";
 import type { Canvas } from "../Canvas";
+import { DEFAULT, DefaultType } from "../algorithm/styles";
 
 export type ElementConfig = {
   id?: string;
@@ -12,6 +13,9 @@ export type ElementConfig = {
   z: number;
   draggable: boolean;
   scaleWithZoom?: boolean;
+  hide: boolean;
+  alwaysShow: boolean;
+  label?: string;
 };
 
 export type ElementState = {
@@ -25,6 +29,9 @@ export type ElementState = {
   render: string;
   renderer: Record<string, (p5: p5) => void>;
   scaleWithZoom: boolean;
+  hidden: boolean;
+  alwaysShow: boolean;
+  label?: string;
 };
 
 export enum ElementType {
@@ -57,6 +64,8 @@ export default abstract class Element<
       z: 0,
       draggable: false,
       scaleWithZoom: false,
+      hide: false,
+      alwaysShow: false,
       ...config,
     } as Required<Config & ElementConfig>;
 
@@ -74,7 +83,10 @@ export default abstract class Element<
       hovering: false,
       render: "default",
       renderer: {},
+      hidden: false,
       scaleWithZoom: this.#config.scaleWithZoom ?? false,
+      alwaysShow: false,
+      label: this.#config.label ?? undefined,
       ...state,
     } as Required<State & ElementState>;
   }
@@ -88,6 +100,8 @@ export default abstract class Element<
 
   onDeselect() {}
 
+  onDelete() {}
+
   addStateRenderer(state: string, render: (p5: p5) => void) {
     // @ts-ignore
     this.#state.renderer[state] = render;
@@ -97,10 +111,16 @@ export default abstract class Element<
     return true;
   }
 
+  isHidden(zoom: number) {
+    return this.hidden;
+  }
+
   makeChangeStateAction<T extends State & ElementState>(
     type: AlgorithmActionType,
     values: Partial<{
-      [key in keyof T]: T[key] | ((...args: any) => T[key]);
+      [key in keyof T]:
+        | (T[key] | DefaultType)
+        | ((...args: any) => T[key] | DefaultType);
     }>
   ) {
     const originalValues: Partial<State & ElementState> = {};
@@ -114,11 +134,14 @@ export default abstract class Element<
       type,
       perform: (...args: any) => {
         for (const key of Object.keys(values)) {
+          const value = values[key];
           // @ts-ignore
           this.#state[key] =
-            typeof values[key] === "function"
-              ? values[key](...args)
-              : values[key];
+            value === DEFAULT
+              ? this.#config[key]
+              : typeof value === "function"
+              ? value(...args)
+              : value;
         }
       },
       undo: () => {
@@ -184,5 +207,14 @@ export default abstract class Element<
 
   set canvas(canvas: Canvas) {
     this.#canvas = canvas;
+  }
+
+  get hidden() {
+    return this.state.hidden;
+  }
+
+  set hidden(b: boolean) {
+    // @ts-ignore
+    this.state.hidden = b;
   }
 }
