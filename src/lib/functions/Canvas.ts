@@ -23,7 +23,7 @@ export class Canvas extends EventEmitter {
   #previousSelectedElement: Element | null;
   #dragStartPosition: Position = { x: 0, y: 0 };
   #controls: Control = {
-    view: { x: -1807, y: -1184, zoom: 1 },
+    view: { x: 700, y: 75, zoom: 0.2 },
     viewPos: { prevX: null, prevY: null, isDragging: false },
   };
   #pressedButton: number | null;

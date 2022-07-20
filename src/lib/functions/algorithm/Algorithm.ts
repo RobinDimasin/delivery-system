@@ -319,57 +319,6 @@ export default abstract class Algorithm {
     while (!renderer.next().done);
   }
 
-  start(locations: NodeElement[]) {
-    this.emptyActions();
-
-    if (locations.length < 2) {
-      throw new Error("Not enough locations, must be at least 2");
-    }
-
-    const actions = new Array<AlgorithmAction>();
-    const buildPathActions = new Array<AlgorithmAction>();
-
-    let pathCount = 0;
-
-    locations = locations.filter((location) => location);
-
-    for (let i = 0; i < locations.length - 1; i++) {
-      const subActions = this.process(locations[i], locations[i + 1]);
-      actions.push(...subActions);
-      actions.push({
-        type: AlgorithmActionType.RESET_STATES,
-        perform: () => {
-          [...subActions].reverse().forEach((action) => action.undo());
-        },
-        undo: () => {
-          [...subActions].reverse().forEach((action) => action.perform());
-        },
-      });
-
-      const buildPathSubActions = subActions.filter(
-        ({ type }) =>
-          type === AlgorithmActionType.BUILD_PATH_NODE ||
-          type === AlgorithmActionType.BUILD_PATH_EDGE ||
-          type === AlgorithmActionType.SHOW_EDGE_DIRECTION
-      );
-
-      for (const buildPathAction of buildPathSubActions.reverse()) {
-        const cnt = pathCount++;
-        buildPathActions.push({
-          ...buildPathAction,
-          type: AlgorithmActionType.BUILD_FINAL_PATH,
-          perform: () => {
-            buildPathAction.perform((cnt / pathCount) * 100 * 0.5);
-          },
-        });
-      }
-    }
-
-    actions.push(...buildPathActions);
-
-    return actions;
-  }
-
   *startGenerator(locations: NodeElement[]) {
     this.emptyActions();
 
@@ -465,11 +414,6 @@ export default abstract class Algorithm {
       yield;
     }
   }
-
-  abstract process(
-    start: NodeElement,
-    end: NodeElement
-  ): Array<AlgorithmAction>;
 
   abstract processGenerator(
     start: NodeElement,
