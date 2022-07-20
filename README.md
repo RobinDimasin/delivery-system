@@ -3,8 +3,7 @@
 ## My Route Manila
 Live preview: [https://my-route-manila.vercel.app/](https://my-route-manila.vercel.app/)
 
-Finds the shortest path to traverse a sequence of points using Dijkstra or A* Algorithm
-Also finds a path, not generally the shortest, using Depth-First Search
+Finds the shortest path to traverse a sequence of points using Dijkstra or A* Algorithm. Also finds a path, not generally the shortest, using Depth-First Search
 
 ## Run locally
 Install Dependencies
