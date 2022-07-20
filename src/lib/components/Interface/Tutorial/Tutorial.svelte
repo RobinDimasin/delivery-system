@@ -15,6 +15,7 @@
   let selectedComponent: Component | undefined;
   let openButton: HTMLLabelElement;
   let closeButton: HTMLLabelElement;
+  $: key = `${id}-show`;
 
   $: {
     if (currentIndex >= 0 && currentIndex <= components.length - 1) {
@@ -27,19 +28,25 @@
   const setShow = (b: boolean) => {
     if (window && window.localStorage) {
       show = b;
-      window.localStorage.setItem(`${id}-show`, `${show}`);
+      window.localStorage.setItem(key, `${show}`);
     }
   };
 
   onMount(() => {
     if (window && window.localStorage) {
-      show = window.localStorage.getItem(`${id}-show`) === "true";
+      const value = window.localStorage.getItem(key);
 
-      if (show) {
-        openButton.click();
+      if (typeof value === "string") {
+        show = window.localStorage.getItem(key) === "true";
+      } else {
+        show = true;
       }
     } else {
       show = true;
+    }
+
+    if (show) {
+      openButton.click();
     }
 
     setShow(show);
