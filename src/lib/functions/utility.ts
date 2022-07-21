@@ -192,6 +192,15 @@ export const formatDistance = (distance: number) => {
   }
 };
 
+export const formatText = (text: string) => {
+  return text
+    .split("_")
+    .map((word) => {
+      return word.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
+    })
+    .join(" ");
+};
+
 export function shuffle(array: any[]) {
   let currentIndex = array.length;
   let randomIndex: number;

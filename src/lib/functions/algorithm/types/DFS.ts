@@ -1,3 +1,4 @@
+import type EdgeElement from "../../elements/Edge/EdgeElement";
 import type NodeElement from "../../elements/Node/NodeElement";
 import Algorithm, {
   AlgorithmAction,
@@ -13,6 +14,7 @@ export default class DFS extends Algorithm {
 
   *processGenerator(start: NodeElement, end: NodeElement, skipActions = false) {
     const visited = new Set<NodeElement>();
+    const visitedEdges = new Set<EdgeElement>();
 
     const stack = [start];
 
@@ -73,6 +75,15 @@ export default class DFS extends Algorithm {
       while (edges.length > 0) {
         const edge = edges.pop();
         const child = edge.to;
+        visitedEdges.add(edge.element);
+
+        if (!skipActions) {
+          this.makeAction(
+            AlgorithmActionType.PROCESSED_EDGE,
+            edge.element
+          ).perform();
+          yield;
+        }
 
         if (!visited.has(child)) {
           this.parentMap.set(child, node);
@@ -94,7 +105,11 @@ export default class DFS extends Algorithm {
           AlgorithmActionType.PROCESSED_EDGE,
           edge.element
         ).perform();
-        yield;
+
+        yield {
+          visited_nodes: visited.size,
+          visited_edges: visitedEdges.size,
+        };
       }
 
       if (!skipActions) {

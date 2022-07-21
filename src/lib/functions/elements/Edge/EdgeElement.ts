@@ -45,6 +45,8 @@ export default class EdgeElement extends Element<EdgeConfig, EdgeState> {
 
   render(p5: p5, view: Control["view"]): void {
     p5.stroke(this.stroke);
+    p5.strokeWeight(this.strokeWeight);
+
     if (this.state.scaleWithZoom) {
       p5.strokeWeight(this.strokeWeight / Math.min(1, view.zoom));
     }

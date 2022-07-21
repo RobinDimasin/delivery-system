@@ -1,5 +1,5 @@
 import { MinPriorityQueue } from "@datastructures-js/priority-queue";
-import EdgeElement from "../../elements/Edge/EdgeElement";
+import type EdgeElement from "../../elements/Edge/EdgeElement";
 import type NodeElement from "../../elements/Node/NodeElement";
 import { increaseBrightness } from "../../utility";
 import Algorithm, {
@@ -18,6 +18,7 @@ export default class Dijkstra extends Algorithm {
   *processGenerator(start: NodeElement, end: NodeElement, skipActions = false) {
     //variables
     const visited = new Set<NodeElement>();
+    const visitedEdges = new Set<EdgeElement>();
     const distances = new Map<NodeElement, number>();
     const pq = new MinPriorityQueue<{ dist: number; node: NodeElement }>(
       ({ dist }) => dist
@@ -72,6 +73,15 @@ export default class Dijkstra extends Algorithm {
       distances.set(currNode, dist);
       for (const edge of this.graph.get(currNode)) {
         const neighbor = edge.to;
+        visitedEdges.add(edge.element);
+
+        if (!skipActions) {
+          this.makeAction(
+            AlgorithmActionType.PROCESSED_EDGE,
+            edge.element
+          ).perform();
+          yield;
+        }
 
         if (visited.has(neighbor)) {
           continue;
@@ -101,7 +111,10 @@ export default class Dijkstra extends Algorithm {
         }
       }
 
-      yield;
+      yield {
+        visited_nodes: visited.size,
+        visited_edges: visitedEdges.size,
+      };
     }
   }
 }

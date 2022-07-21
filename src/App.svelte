@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ComputationStatistics from "./lib/components/ComputationStatistics.svelte";
+
   import Graph from "./lib/components/Graph.svelte";
   import Interface from "./lib/components/Interface.svelte";
   import ColorLabelsInVisualization from "./lib/components/Interface/Tutorial/Pages/ColorLabelsInVisualization.svelte";
@@ -16,6 +18,7 @@
   <TailwindCSS />
   <Interface />
   <Graph />
+  <ComputationStatistics />
 
   <Tutorial
     id="tutorial"

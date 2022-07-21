@@ -39,6 +39,7 @@ export default class PolygonElement extends Element<
         fill: "white",
         stroke: "black",
         strokeWeight: 1,
+        z: -1,
         ...config,
       },
       {
@@ -60,19 +61,19 @@ export default class PolygonElement extends Element<
       p5.strokeWeight(this.strokeWeight / Math.min(1, view.zoom));
     }
 
-    for (const edge of this.edges) {
-      edge.render(p5, view);
-    }
+    // for (const edge of this.edges) {
+    //   edge.render(p5, view);
+    // }
 
-    for (const node of this.nodes) {
-      node.render(p5, view);
-    }
+    // for (const node of this.nodes) {
+    //   node.render(p5, view);
+    // }
 
-    p5.fill(colorAlpha(this.fill, 0.3));
+    p5.fill(colorAlpha(this.fill, 0.05));
 
-    if (this.hovering) {
-      p5.fill("yellow");
-    }
+    // if (this.hovering) {
+    //   p5.fill("yellow");
+    // }
 
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
@@ -92,9 +93,9 @@ export default class PolygonElement extends Element<
     );
 
     p5.stroke("black");
-    p5.strokeWeight(4);
-    p5.fill("white");
-    p5.textSize(16 / view.zoom);
+    p5.strokeWeight(0);
+    p5.fill("black");
+    p5.textSize(10 / view.zoom);
     p5.textAlign(p5.CENTER);
     p5.text(this.state.label, mid.x, mid.y);
     p5.strokeWeight(1);

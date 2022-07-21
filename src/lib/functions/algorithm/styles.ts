@@ -64,7 +64,7 @@ const AlgorithmStyles = {
     },
     PROCESSED: {
       stroke: "#45AD18",
-      strokeWeight: 3,
+      strokeWeight: 2,
       scaleWithZoom: true,
     },
     FINAL_PATH: {

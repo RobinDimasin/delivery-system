@@ -1,5 +1,6 @@
 import { MinPriorityQueue } from "@datastructures-js/priority-queue";
 import { current_component } from "svelte/internal";
+import type EdgeElement from "../../elements/Edge/EdgeElement";
 import type NodeElement from "../../elements/Node/NodeElement";
 import { increaseBrightness } from "../../utility";
 import Algorithm, {
@@ -23,6 +24,7 @@ export default class AStar extends Algorithm {
     const actions = new Array<AlgorithmAction>();
 
     const visited = new Set<NodeElement>();
+    const visitedEdges = new Set<EdgeElement>();
 
     const frontier = new MinPriorityQueue<{ fcost: number; node: NodeElement }>(
       ({ fcost }) => fcost
@@ -78,6 +80,16 @@ export default class AStar extends Algorithm {
       for (const edge of this.graph.get(currNode)) {
         const neighbor = edge.to;
 
+        visitedEdges.add(edge.element);
+
+        if (!skipActions) {
+          this.makeAction(
+            AlgorithmActionType.PROCESSED_EDGE,
+            edge.element
+          ).perform();
+          yield;
+        }
+
         if (visited.has(neighbor)) {
           continue;
         }
@@ -108,6 +120,11 @@ export default class AStar extends Algorithm {
         }
         yield;
       }
+
+      yield {
+        visited_nodes: visited.size,
+        visited_edges: visitedEdges.size,
+      };
     }
 
     return actions;
