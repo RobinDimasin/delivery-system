@@ -43,7 +43,9 @@ export const algorithm = writable<new (graph: GraphRawInput) => Algorithm>(DFS);
 export const algorithmResults = writable<ReturnType<Algorithm["compute"]>[]>(
   []
 );
+export const isVisualizationPaused = writable(false);
 export const isComputingPath = writable<boolean | undefined>(undefined);
+export const computationStatistics = writable<Record<string, any>>({});
 
 export const locations = writable<Location[]>([]);
 export const areas = writable<Area[]>([]);

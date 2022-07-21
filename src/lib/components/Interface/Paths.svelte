@@ -1,7 +1,12 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
 
-  import { algorithmResults, yieldInterval } from "../../store/store";
+  import {
+    algorithmResults,
+    computationStatistics,
+    isVisualizationPaused,
+    yieldInterval,
+  } from "../../store/store";
   import type { Renderer } from "../../functions/types";
   import AlgorithmResult from "./AlgorithmResult.svelte";
   import SpeedInput from "./SpeedInput.svelte";
@@ -11,6 +16,8 @@
   const knownComputations = new Set<string>();
 
   const stopRenderer = () => {
+    computationStatistics.set({});
+    isVisualizationPaused.set(false);
     if (currentRenderer) {
       currentRenderer.resetGraphVisual();
     }
@@ -19,6 +26,7 @@
   };
 
   const startRenderer = (renderer: Renderer) => {
+    isVisualizationPaused.set(false);
     stopRenderer();
     currentRenderer = renderer;
     renderer.resetGraphVisual();
@@ -30,8 +38,11 @@
       const now = new Date().getTime();
       const need = Math.floor((now - last) / $yieldInterval);
 
-      for (let i = 0; i < need; i++) {
-        const { done } = renderer.renderer.next();
+      for (let i = 0; i < need && !$isVisualizationPaused; i++) {
+        const { value, done } = renderer.renderer.next();
+        if (value) {
+          computationStatistics.set(value);
+        }
         if (done) {
           renderer.render(true);
         }
@@ -39,6 +50,10 @@
         if (done) {
           break;
         }
+      }
+
+      if ($isVisualizationPaused) {
+        last = new Date().getTime();
       }
     }, 50);
   };

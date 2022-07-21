@@ -13,6 +13,8 @@
     areas,
   } from "../store/store";
   import { onDestroy } from "svelte";
+  import labels from "../data/labels.json";
+  import PolygonElement from "../functions/elements/Polygon/PolygonElement";
 
   $: $networkGraph.setGraph($graph);
 
@@ -66,22 +68,22 @@
 
   $: {
     $graph;
-    // areas.set(
-    //   labels.map(({ points, label, color }) => {
-    //     const polygon = $networkGraph.newElement(PolygonElement, {
-    //       label,
-    //       fill: color,
-    //     });
-    //     for (const point of points) {
-    //       polygon.addPoint(point.x, point.y);
-    //     }
-    //     return {
-    //       polygon,
-    //       label,
-    //       color,
-    //     };
-    //   })
-    // );
+    areas.set(
+      labels.map(({ points, label, color }) => {
+        const polygon = $networkGraph.newElement(PolygonElement, {
+          label,
+          fill: color,
+        });
+        for (const point of points) {
+          polygon.addPoint(point.x, point.y);
+        }
+        return {
+          polygon,
+          label,
+          color,
+        };
+      })
+    );
   }
   let destroyed = false;
 

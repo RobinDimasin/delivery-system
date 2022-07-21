@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { algorithmResults } from "../../store/store";
+  import { algorithmResults, isVisualizationPaused } from "../../store/store";
 
   import type Algorithm from "../../functions/algorithm/Algorithm";
   import type { Renderer } from "../../functions/types";
-  import { capitalize, formatDistance, round } from "../../functions/utility";
+  import {
+    capitalize,
+    formatDistance,
+    formatText,
+    round,
+  } from "../../functions/utility";
   import NodeInfo from "./NodeInfo.svelte";
 
   const MAP_TO_REAL_LIFE_RATIO = 361.58 / 99.25;
@@ -23,17 +28,59 @@
   tabindex="0"
   class="collapse border border-base-300 bg-base-100 rounded-box shadow-xl"
 >
-  <input type="checkbox" class="!w-8/12" />
+  <input type="checkbox" class="!w-7/12" />
   <div class="collapse-title flex justify-between !pr-4">
     <div class="flex h-auto">
       <div class="m-auto">
-        <span>{capitalize(algorithmResult.algorithmUsed)}</span>
-        <span class="text-xs">
-          (Took {round(algorithmResult.computingTime, 4)}ms)
-        </span>
+        <div>
+          <b>{capitalize(algorithmResult.algorithmUsed)}</b>
+        </div>
+        <div class="text-xs">
+          <p>Runtime: {round(algorithmResult.computingTime, 4)}ms</p>
+          {#each Object.entries(algorithmResult.process.visited) as [key, value] (key)}
+            <p>{formatText(key)}: {value}</p>
+          {/each}
+        </div>
       </div>
     </div>
+
     <div>
+      {#if currentRenderer === algorithmResult.process}
+        <button
+          class={`btn btn-sm btn-outline border-dashed border-2 btn-primary`}
+          on:click={() => {
+            isVisualizationPaused.set(!$isVisualizationPaused);
+          }}
+        >
+          {#if !$isVisualizationPaused}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          {/if}
+        </button>
+      {/if}
       <button
         class={`btn btn-sm btn-outline border-dashed border-2 ${
           currentRenderer === algorithmResult.process

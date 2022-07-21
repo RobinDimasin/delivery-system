@@ -56,6 +56,7 @@ type PathSegment = {
 export type Path = {
   start: NodeElement;
   end: NodeElement;
+  visited: Record<string, any>;
   segments: PathSegment[];
   renderer: IterableIterator<void>;
   distance: number;
@@ -106,14 +107,38 @@ export default abstract class Algorithm {
     const startTime = performance.now();
 
     const paths = new Array<Path>();
+    let visited: Record<string, any> = {};
 
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
       const start = locations[i];
       const end = locations[i + 1];
       const gen = this.processGenerator(start, end, true);
+      let subVisited = {
+        ...visited,
+      };
 
-      while (!gen.next().done);
+      while (true) {
+        const { value, done } = gen.next();
+
+        if (value) {
+          for (const [key, v] of Object.entries(value)) {
+            if (key in visited) {
+              subVisited[key] = visited[key] + v;
+            } else {
+              subVisited[key] = v;
+            }
+          }
+        }
+        if (done) {
+          break;
+        }
+      }
+
+      visited = {
+        ...visited,
+        ...subVisited,
+      };
 
       const segments = new Array<PathSegment>();
 
@@ -153,6 +178,7 @@ export default abstract class Algorithm {
         start,
         end,
         segments: segments,
+        visited: subVisited,
         renderer: newPathRenderer(),
         resetRenderer: function () {
           this.renderer = newPathRenderer();
@@ -176,11 +202,23 @@ export default abstract class Algorithm {
     function* newProcessRenderer() {
       const gen = processGenerator();
 
-      while (!gen.next().done) {
+      while (true) {
+        let val,
+          done = false;
         for (let i = 0; i < 10; i++) {
-          gen.next();
+          const { value, done: _done } = gen.next();
+          if (value) {
+            val = value;
+          }
+          if (_done) {
+            done = true;
+          }
         }
-        yield;
+        yield val;
+
+        if (done) {
+          break;
+        }
       }
     }
 
@@ -200,6 +238,7 @@ export default abstract class Algorithm {
       id: uuidv4(),
       algorithmUsed: this.#type,
       process: {
+        visited,
         renderer: newProcessRenderer(),
         resetRenderer: function () {
           this.renderer = newProcessRenderer();
@@ -332,13 +371,38 @@ export default abstract class Algorithm {
 
     this.resetGraphVisual();
 
+    let visited: Record<string, any> = {};
+
     for (let i = 0; i < locations.length - 1; i++) {
       this.parentMap.clear();
       const gen = this.processGenerator(locations[i], locations[i + 1]);
+      let subVisited = {
+        ...visited,
+      };
 
-      while (!gen.next().done) {
-        yield;
+      while (true) {
+        const { value, done } = gen.next();
+
+        if (value) {
+          for (const [key, v] of Object.entries(value)) {
+            if (key in visited) {
+              subVisited[key] = visited[key] + v;
+            } else {
+              subVisited[key] = v;
+            }
+          }
+        }
+
+        yield subVisited;
+        if (done) {
+          break;
+        }
       }
+
+      visited = {
+        ...visited,
+        ...subVisited,
+      };
 
       const subPath = new Array<NodeElement>();
 
@@ -358,6 +422,7 @@ export default abstract class Algorithm {
       this.resetGraphVisual();
       this.#previousPathEdge.clear();
       this.#previousPathNode.clear();
+
       yield;
     }
 
