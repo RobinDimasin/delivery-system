@@ -6,7 +6,7 @@ import {
   isPointInsidePolygon,
   randomColor,
 } from "../../utility";
-import EdgeElement from "../Edge/EdgeElement";
+import type EdgeElement from "../Edge/EdgeElement";
 import Element, { ElementConfig, ElementState, ElementType } from "../Element";
 import NodeElement from "../Node/NodeElement";
 
@@ -75,6 +75,8 @@ export default class PolygonElement extends Element<
     //   p5.fill("yellow");
     // }
 
+    p5.strokeWeight(0);
+
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
       if (i === 0) {
@@ -93,7 +95,6 @@ export default class PolygonElement extends Element<
     );
 
     p5.stroke("black");
-    p5.strokeWeight(0);
     p5.fill("black");
     p5.textSize(10 / view.zoom);
     p5.textAlign(p5.CENTER);
@@ -114,22 +115,22 @@ export default class PolygonElement extends Element<
     this.points.push(node);
     this.nodes.push(node);
 
-    if (this.canvas) {
-      this.canvas.addElement(node);
-    }
+    // if (this.canvas) {
+    //   this.canvas.addElement(node);
+    // }
 
-    const len = this.nodes.length;
-    if (len >= 2) {
-      const edge = new EdgeElement({
-        source: this.nodes[len - 2],
-        target: this.nodes[len - 1],
-      });
-      this.edges.push(edge);
+    // const len = this.nodes.length;
+    // if (len >= 2) {
+    //   const edge = new EdgeElement({
+    //     source: this.nodes[len - 2],
+    //     target: this.nodes[len - 1],
+    //   });
+    //   this.edges.push(edge);
 
-      if (this.canvas) {
-        this.canvas.addElement(edge);
-      }
-    }
+    //   if (this.canvas) {
+    //     this.canvas.addElement(edge);
+    //   }
+    // }
   }
 
   removePoint() {
